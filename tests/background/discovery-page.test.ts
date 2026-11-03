@@ -89,6 +89,36 @@ describe('discoverPageFeeds', () => {
         ])
     })
 
+    it('detects an XML feed served with a generic XML type', async () => {
+        page(
+            'https://example.com/rss.xml',
+            '<html><body><pre>&lt;rss version="2.0"&gt;&lt;channel/&gt;&lt;/rss&gt;</pre></body></html>',
+            'application/xml'
+        )
+
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {
+                url: 'https://example.com/rss.xml',
+                source: 'page'
+            }
+        ])
+    })
+
+    it('detects a JSON Feed served as application/json', async () => {
+        page(
+            'https://example.com/feed.json',
+            '<html><body><pre>{"version":"https://jsonfeed.org/version/1.1","items":[]}</pre></body></html>',
+            'application/json'
+        )
+
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {
+                url: 'https://example.com/feed.json',
+                source: 'page'
+            }
+        ])
+    })
+
     it('probes the Reddit-style .rss URL when no link exists', async () => {
         page('https://www.reddit.com/r/news', '<html><body>News</body></html>')
         const fetchMock = vi.fn().mockResolvedValue(

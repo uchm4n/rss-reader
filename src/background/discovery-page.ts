@@ -46,7 +46,16 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
     }
 
     const path = location.pathname
-    if (feedMime.test(contentType) || feedPath.test(path) || feedLikePath.test(path)) {
+    const bodyText = document.body?.textContent?.slice(0, 4096) ?? ''
+    const bodyIsFeed =
+        /(xml|text\/plain|json)/i.test(contentType) && looksLikeFeed(bodyText)
+
+    if (
+        feedMime.test(contentType) ||
+        bodyIsFeed ||
+        feedPath.test(path) ||
+        feedLikePath.test(path)
+    ) {
         return [
             {
                 url: pageUrl,
