@@ -4,4 +4,5 @@ dist/
 .extension-js/
 .superpowers/
 .openidea/
+.idea/
 docs/
