@@ -286,8 +286,15 @@ async function main() {
       const posts = await dbAll('posts')
       return posts.length === 3 && posts.every((post) => post.status)
     }, 'first fetch was not imported as read')
+    const addedFeed = (await dbAll('feeds')).find((feed) =>
+      feed.url.endsWith('/rss.xml')
+    )
+    assert(
+      addedFeed?.favicon?.startsWith('data:image/'),
+      'feed favicon was not cached as a data URL'
+    )
     assert((await badge()) === '', 'badge should be clear after the first fetch')
-    console.log('   first fetch imported 3 posts as read')
+    console.log('   first fetch imported 3 posts as read and cached the favicon')
 
     console.log('2. fetch a new item')
     await fetch(`${fixture.url}/add-item`)

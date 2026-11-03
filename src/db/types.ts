@@ -8,6 +8,8 @@ export interface Feed {
     title: string
     description: string | null
     favicon: string | null
+    faviconSourceUrl?: string | null
+    faviconCachedAt?: number | null
     folderId: string | null
     refreshInterval: number | null
     lastFetchedAt: number | null

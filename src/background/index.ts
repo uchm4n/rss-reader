@@ -2,6 +2,7 @@ import {db} from '../db/db'
 import {getSettings} from '../db/settings'
 import {syncActionBadge} from './badge'
 import {clearDiscovery, detectTab} from './discovery'
+import {cacheMissingFavicons} from './favicon'
 import {type Command, type CommandResult, handleCommand, runDueFeeds} from './messages'
 import {ALARM_NAME, nextDueAt} from './scheduler'
 
@@ -22,6 +23,9 @@ async function scheduleAlarm(): Promise<void> {
 async function initialize(): Promise<void> {
     await scheduleAlarm()
     await syncActionBadge()
+    await cacheMissingFavicons().catch((error) =>
+        console.error('RSS Reader favicon cache failed', error)
+    )
 }
 
 chrome.runtime.onInstalled.addListener(() => {

@@ -6,6 +6,7 @@ import {generateOpml, parseOpmlFeeds} from '../shared/parser/parse-opml'
 import {parseFeedDocument} from '../shared/parser/parse-feed'
 import {syncActionBadge} from './badge'
 import {getActiveDiscovery, getDiscoveryForTab} from './discovery'
+import {cacheFeedFavicon, resolveFeedFavicon} from './favicon'
 import {fetchFeed} from './fetcher'
 import {ingestFeed} from './ingest'
 import {notifyNewPosts} from './notifications'
@@ -78,20 +79,6 @@ function matchesFeedUrl(feed: Feed, url: string): boolean {
         canonicalFeedUrl(feed.url) === canonical ||
         (Boolean(feed.sourceUrl) && canonicalFeedUrl(feed.sourceUrl!) === canonical)
     )
-}
-
-function faviconFor(
-    imageUrl: string | null,
-    siteUrl: string | null,
-    feedUrl: string
-): string | null {
-    if (imageUrl) return imageUrl
-
-    try {
-        return new URL('/favicon.ico', siteUrl ?? feedUrl).toString()
-    } catch {
-        return null
-    }
 }
 
 async function recordFailure(
@@ -242,12 +229,13 @@ export async function refreshFeed(
     const urlTaken =
         finalUrl !== feed.url &&
         Boolean(await db.feeds.where('url').equals(finalUrl).first())
+    const favicon = await cacheFeedFavicon(feed, {feedImageUrl: parsed.imageUrl})
 
     await db.feeds.update(feed.id, {
         url: urlTaken ? feed.url : finalUrl,
         siteUrl: parsed.siteUrl ?? feed.siteUrl,
         description: parsed.description ?? feed.description,
-        favicon: faviconFor(parsed.imageUrl, parsed.siteUrl, finalUrl),
+        ...favicon,
         lastFetchedAt: now,
         nextFetchAt: now + interval * 1_000,
         etag: fetched.etag,
@@ -313,6 +301,13 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
         throw new Error('Feed already exists')
     }
 
+    const favicon = await resolveFeedFavicon({
+        siteUrl: parsed.siteUrl,
+        feedUrl: finalUrl,
+        feedImageUrl: parsed.imageUrl,
+        sourceTabId: command.sourceTabId
+    })
+
     const feed: Feed = {
         id: crypto.randomUUID(),
         url: finalUrl,
@@ -320,7 +315,9 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
         siteUrl: parsed.siteUrl,
         title: parsed.title,
         description: parsed.description,
-        favicon: faviconFor(parsed.imageUrl, parsed.siteUrl, finalUrl),
+        favicon: favicon.favicon,
+        faviconSourceUrl: favicon.faviconSourceUrl,
+        faviconCachedAt: favicon.faviconCachedAt,
         folderId: command.folderId ?? null,
         refreshInterval: command.refreshInterval ?? null,
         lastFetchedAt: now,

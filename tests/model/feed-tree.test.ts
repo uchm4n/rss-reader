@@ -12,7 +12,7 @@ function label(node: FeedTreeNode): string {
 }
 
 describe('buildFeedTree', () => {
-  it('renders folders in sort order and root feeds by title', () => {
+  it('renders root feeds first and folders in sort order', () => {
     const feeds = [
       feedFixture({id: 'feed-1', title: 'Zeta'}),
       feedFixture({id: 'feed-2', title: 'Alpha', folderId: 'folder-2'}),
@@ -24,9 +24,9 @@ describe('buildFeedTree', () => {
     ]
 
     expect(buildFeedTree(feeds, folders).map(label)).toEqual([
+      'feed:Zeta',
       'folder:Earlier',
-      'folder:Later',
-      'feed:Zeta'
+      'folder:Later'
     ])
   })
 

@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import {Rss} from 'lucide-react'
 import {cn} from '@/lib/utils'
 
@@ -10,6 +10,10 @@ export function FeedIcon({
     className?: string
 }) {
     const [failed, setFailed] = useState(false)
+
+    useEffect(() => {
+        setFailed(false)
+    }, [favicon])
 
     if (!favicon || failed) {
         return <Rss className={cn('text-muted-foreground', className)}/>

@@ -9,13 +9,14 @@ function xmlEscape(value) {
     .replaceAll('"', '&quot;')
 }
 
-function rssDocument(items) {
+function rssDocument(items, base) {
   return `<?xml version="1.0"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>Fixture RSS</title>
-    <link>http://127.0.0.1/</link>
+    <link>${base}/</link>
     <description>Fixture RSS feed</description>
+    <image><url>${base}/favicon.png</url><title>Fixture RSS</title><link>${base}/</link></image>
     ${items
       .map(
         (item) => `<item>
@@ -186,8 +187,17 @@ export async function startFixtureServer(port = 0) {
 
     switch (url.pathname) {
       case '/rss.xml':
-        send(response, 200, 'application/rss+xml', rssDocument(rssItems))
+        send(response, 200, 'application/rss+xml', rssDocument(rssItems, base()))
         return
+      case '/favicon.ico':
+      case '/favicon.png': {
+        const png = Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          'base64'
+        )
+        send(response, 200, 'image/png', png)
+        return
+      }
       case '/atom.xml':
         send(response, 200, 'application/atom+xml', atomDocument(atomItems))
         return
@@ -195,7 +205,7 @@ export async function startFixtureServer(port = 0) {
         send(response, 200, 'application/feed+json', jsonDocument(jsonItems))
         return
       case '/retention.xml':
-        send(response, 200, 'application/rss+xml', rssDocument(retentionItems))
+        send(response, 200, 'application/rss+xml', rssDocument(retentionItems, base()))
         return
       case '/article.html':
         send(
@@ -209,7 +219,7 @@ export async function startFixtureServer(port = 0) {
         )
         return
       case '/article.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(articleItems))
+        send(response, 200, 'application/rss+xml', rssDocument(articleItems, base()))
         return
       case '/multi.html':
         send(
@@ -245,7 +255,7 @@ export async function startFixtureServer(port = 0) {
         )
         return
       case '/probe.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(probeItems))
+        send(response, 200, 'application/rss+xml', rssDocument(probeItems, base()))
         return
       case '/reddit-like/news':
       case '/reddit-like/news/':
@@ -257,7 +267,7 @@ export async function startFixtureServer(port = 0) {
         )
         return
       case '/reddit-like/news.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(redditItems))
+        send(response, 200, 'application/rss+xml', rssDocument(redditItems, base()))
         return
       case '/cookie-page':
         send(
@@ -276,7 +286,7 @@ export async function startFixtureServer(port = 0) {
           send(response, 403, 'text/plain', 'Forbidden')
           return
         }
-        send(response, 200, 'application/rss+xml', rssDocument(cookieItems))
+        send(response, 200, 'application/rss+xml', rssDocument(cookieItems, base()))
         return
       case '/add-cookie-item': {
         cookieAdded += 1

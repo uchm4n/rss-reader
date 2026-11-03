@@ -40,6 +40,7 @@ Only feed URLs, article links, images referenced by feeds and a bounded set of s
 - `status: true` means read. `starred` is independent.
 - A single dynamic alarm refreshes due feeds in small batches. The minimum interval is 30 seconds; feeds can override the global interval. The global dropdown labels the 15-minute option as the default.
 - Search is a local filter over stored posts, capped at 200 results.
+- Feed icons are fetched on add/refresh and cached in IndexedDB as data URLs for 30 days. Missing icons fall back to the RSS icon.
 - Settings → Storage shows a read-only summary of the Dexie stores, record counts and the browser storage estimate; Clear all data removes everything.
 
 ## Feed discovery

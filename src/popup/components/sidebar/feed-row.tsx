@@ -1,8 +1,7 @@
-import {useState} from 'react'
-import {Rss} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {cn} from '@/lib/utils'
 import type {Feed} from '@/db/types'
+import {FeedIcon} from '../posts/feed-icon'
 import {UnreadCount} from './unread-count'
 
 interface FeedRowProps {
@@ -12,8 +11,6 @@ interface FeedRowProps {
 }
 
 export function FeedRow({feed, selected, onSelect}: FeedRowProps) {
-    const [iconFailed, setIconFailed] = useState(false)
-
     return (
         <Button
             type="button"
@@ -27,17 +24,10 @@ export function FeedRow({feed, selected, onSelect}: FeedRowProps) {
             )}
         >
             <UnreadCount count={feed.unreadCount}/>
-            {feed.favicon && !iconFailed ? (
-                <img
-                    src={feed.favicon}
-                    alt=""
-                    loading="lazy"
-                    onError={() => setIconFailed(true)}
-                    className="size-4 shrink-0 rounded-sm"
-                />
-            ) : (
-                <Rss className="size-4 shrink-0 text-muted-foreground group-hover:text-brand"/>
-            )}
+            <FeedIcon
+                favicon={feed.favicon}
+                className="size-4 shrink-0 group-hover:text-brand"
+            />
             <span className="min-w-0 flex-1 truncate">{feed.title}</span>
         </Button>
     )

@@ -79,6 +79,44 @@ describe('handleCommand', () => {
     expect(feeds[0]).toMatchObject({fetchMode: 'background', url: 'https://example.com/feed.xml'})
   })
 
+  it('caches a feed favicon as a data URL on add', async () => {
+    const png = Uint8Array.from(
+      atob(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='
+      ),
+      (character) => character.charCodeAt(0)
+    )
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url =
+          typeof input === 'string'
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url
+        if (url === 'https://example.com/favicon.ico') {
+          return new Response(png, {headers: {'content-type': 'image/png'}})
+        }
+        return new Response(
+          '<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><link>https://example.com/</link><description>d</description><item><title>One</title><link>https://example.com/1</link><guid>g1</guid><description>body</description></item></channel></rss>',
+          {status: 200}
+        )
+      })
+    )
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://example.com/feed.xml'
+    })
+
+    expect(result.ok).toBe(true)
+    const feed = (await db.feeds.toArray())[0]
+    expect(feed.favicon).toMatch(/^data:image\/png;base64,/)
+    expect(feed.faviconSourceUrl).toBe('https://example.com/favicon.ico')
+    expect(feed.faviconCachedAt).toBeTypeOf('number')
+  })
+
   it('falls back to a same-origin page fetch when the background fetch fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('blocked', {status: 403})))
     const executeScript = vi.fn().mockResolvedValue([
