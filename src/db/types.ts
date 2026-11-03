@@ -11,6 +11,7 @@ export interface Feed {
     nextFetchAt: number
     etag: string | null
     lastModified: string | null
+    fetchMode?: 'background' | 'page'
     errorCount: number
     lastError: string | null
     unreadCount: number

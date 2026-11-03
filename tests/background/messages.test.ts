@@ -14,6 +14,13 @@ beforeEach(() => {
       setBadgeBackgroundColor: vi.fn(),
       setBadgeTextColor: vi.fn(),
       setIcon: vi.fn()
+    },
+    tabs: {
+      get: vi.fn().mockRejectedValue(new Error('no tab')),
+      query: vi.fn().mockResolvedValue([])
+    },
+    scripting: {
+      executeScript: vi.fn().mockResolvedValue([])
     }
   })
 })
@@ -49,6 +56,57 @@ describe('handleCommand', () => {
     })
 
     expect(result).toEqual({ok: false, error: 'Feed already exists'})
+  })
+
+  it('stores a successful background add as background mode', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          '<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><link>https://example.com/</link><description>d</description><item><title>One</title><link>https://example.com/1</link><guid>g1</guid><description>body</description></item></channel></rss>',
+          {status: 200}
+        )
+      )
+    )
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://example.com/feed.xml'
+    })
+
+    expect(result.ok).toBe(true)
+    const feeds = await db.feeds.toArray()
+    expect(feeds[0]).toMatchObject({fetchMode: 'background', url: 'https://example.com/feed.xml'})
+  })
+
+  it('falls back to a same-origin page fetch when the background fetch fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('blocked', {status: 403})))
+    const executeScript = vi.fn().mockResolvedValue([
+      {
+        result: {
+          status: 'ok',
+          text: '<?xml version="1.0"?><rss version="2.0"><channel><title>Page Feed</title><link>https://example.com/</link><description>d</description><item><title>One</title><link>https://example.com/1</link><guid>g1</guid><description>body</description></item></channel></rss>',
+          finalUrl: 'https://example.com/feed.xml'
+        }
+      }
+    ])
+    const chromeMock = globalThis.chrome as unknown as {
+      tabs: {get: ReturnType<typeof vi.fn>; query: ReturnType<typeof vi.fn>}
+      scripting: {executeScript: ReturnType<typeof vi.fn>}
+    }
+    chromeMock.tabs.get.mockResolvedValue({id: 5, url: 'https://example.com/article'})
+    chromeMock.scripting.executeScript = executeScript
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://example.com/feed.xml',
+      sourceTabId: 5
+    })
+
+    expect(result.ok).toBe(true)
+    const feed = (await db.feeds.toArray())[0]
+    expect(feed).toMatchObject({fetchMode: 'page', title: 'Page Feed'})
+    expect(await db.posts.count()).toBe(1)
   })
 
   it('moves feeds to the root when a folder is deleted', async () => {

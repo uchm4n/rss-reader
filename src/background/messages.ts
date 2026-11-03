@@ -7,6 +7,7 @@ import {syncActionBadge} from './badge'
 import {fetchFeed} from './fetcher'
 import {ingestFeed} from './ingest'
 import {notifyNewPosts} from './notifications'
+import {fetchFeedInTab, findSameOriginTab} from './page-fetch'
 import {backoffSeconds, BATCH_SIZE, effectiveInterval, selectDueFeeds, WORK_BUDGET_MS} from './scheduler'
 
 export type Command =
@@ -15,6 +16,7 @@ export type Command =
     url: string
     folderId?: string | null
     refreshInterval?: number | null
+    sourceTabId?: number
 }
     | {
     type: 'feed:update'
@@ -95,6 +97,74 @@ async function recordFailure(
     })
 }
 
+type FeedDocumentResult =
+    | {
+    status: 'ok'
+    text: string
+    finalUrl: string
+    etag: string | null
+    lastModified: string | null
+    mode: 'background' | 'page'
+}
+    | {
+    status: 'not-modified'
+    finalUrl: string
+    etag: string | null
+    lastModified: string | null
+}
+    | { status: 'error'; error: string; noTab?: boolean }
+
+async function fetchFeedDocument(
+    url: string,
+    mode: 'background' | 'page',
+    etag: string | null,
+    lastModified: string | null,
+    preferredTabId?: number
+): Promise<FeedDocumentResult> {
+    if (mode === 'page') {
+        const tabId = await findSameOriginTab(url, preferredTabId)
+        if (tabId === null) {
+            return {
+                status: 'error',
+                error: 'Open a tab on this site to refresh',
+                noTab: true
+            }
+        }
+
+        const page = await fetchFeedInTab(tabId, url)
+        if (page.status === 'error') return page
+
+        return {
+            status: 'ok',
+            text: page.text,
+            finalUrl: page.finalUrl,
+            etag: null,
+            lastModified: null,
+            mode: 'page'
+        }
+    }
+
+    const fetched = await fetchFeed({url, etag, lastModified})
+    if (fetched.status !== 'error') {
+        return fetched.status === 'ok' ? {...fetched, mode: 'background'} : fetched
+    }
+
+    const tabId = await findSameOriginTab(url, preferredTabId)
+    if (tabId === null) return fetched
+
+    const page = await fetchFeedInTab(tabId, url)
+    if (page.status === 'error') return page
+
+    return {
+        status: 'ok',
+        text: page.text,
+        finalUrl: page.finalUrl,
+        etag: null,
+        lastModified: null,
+        mode: 'page'
+    }
+}
+
 export async function refreshFeed(
     feedId: string,
     now = Date.now()
@@ -104,13 +174,23 @@ export async function refreshFeed(
 
     const settings = await getSettings()
     const interval = effectiveInterval(feed, settings.refreshInterval)
-    const fetched = await fetchFeed({
-        url: feed.url,
-        etag: feed.etag,
-        lastModified: feed.lastModified
-    })
+    const fetched = await fetchFeedDocument(
+        feed.url,
+        feed.fetchMode ?? 'background',
+        feed.etag,
+        feed.lastModified
+    )
 
     if (fetched.status === 'error') {
+        if (fetched.noTab) {
+            await db.feeds.update(feed.id, {
+                lastError: fetched.error,
+                nextFetchAt: now + interval * 1_000,
+                updatedAt: now
+            })
+            return {inserted: 0, error: fetched.error}
+        }
+
         await recordFailure(feed, fetched.error, interval, now)
         return {inserted: 0, error: fetched.error}
     }
@@ -158,6 +238,7 @@ export async function refreshFeed(
         nextFetchAt: now + interval * 1_000,
         etag: fetched.etag,
         lastModified: fetched.lastModified,
+        fetchMode: fetched.mode,
         errorCount: 0,
         lastError: null,
         updatedAt: now
@@ -200,7 +281,13 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
     }
 
     const settings = await getSettings()
-    const fetched = await fetchFeed({url, etag: null, lastModified: null})
+    const fetched = await fetchFeedDocument(
+        url,
+        'background',
+        null,
+        null,
+        command.sourceTabId
+    )
     if (fetched.status === 'error') throw new Error(fetched.error)
     if (fetched.status === 'not-modified') throw new Error('Feed returned no content')
 
@@ -220,6 +307,7 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
         nextFetchAt: 0,
         etag: fetched.etag,
         lastModified: fetched.lastModified,
+        fetchMode: fetched.mode,
         errorCount: 0,
         lastError: null,
         unreadCount: 0,
