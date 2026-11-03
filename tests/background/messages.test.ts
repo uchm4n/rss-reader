@@ -109,6 +109,17 @@ describe('handleCommand', () => {
     expect(await db.posts.count()).toBe(1)
   })
 
+  it('rejects a duplicate after canonical URL normalization', async () => {
+    await seedFeed({id: 'feed-1', url: 'https://example.com/feed'})
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://example.com/feed/'
+    })
+
+    expect(result).toEqual({ok: false, error: 'Feed already exists'})
+  })
+
   it('moves feeds to the root when a folder is deleted', async () => {
     await db.folders.add({
       id: 'folder-1',

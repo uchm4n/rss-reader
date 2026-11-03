@@ -51,20 +51,35 @@ describe('discovery cache', () => {
         expect(executeScript).toHaveBeenCalledTimes(1)
     })
 
-    it('re-scans when the tab URL changes', async () => {
+    it('does not cache a result when the tab navigates during detection', async () => {
         const get = vi
             .fn()
             .mockResolvedValueOnce({id: 1, url: 'https://example.com/one'})
             .mockResolvedValueOnce({id: 1, url: 'https://example.com/two'})
-        const executeScript = vi.fn().mockResolvedValue([{result: []}])
+            .mockResolvedValueOnce({id: 1, url: 'https://example.com/two'})
+            .mockResolvedValueOnce({id: 1, url: 'https://example.com/two'})
+        const executeScript = vi.fn().mockResolvedValue([
+            {
+                result: [
+                    {
+                        url: 'https://example.com/feed.xml',
+                        title: 'Feed',
+                        type: 'application/rss+xml',
+                        source: 'link'
+                    }
+                ]
+            }
+        ])
         vi.stubGlobal('chrome', {
             tabs: {get, query: vi.fn()},
             scripting: {executeScript}
         })
 
-        await detectTab(1)
-        await detectTab(1)
+        const first = await detectTab(1)
+        expect(first.feeds).toEqual([])
 
+        const second = await detectTab(1)
+        expect(second.feeds).toHaveLength(1)
         expect(executeScript).toHaveBeenCalledTimes(2)
     })
 
@@ -105,6 +120,35 @@ describe('getActiveDiscovery', () => {
             pageUrl: 'https://example.com/article',
             feeds: [{url: 'https://example.com/feed.xml', subscribed: true}]
         })
+    })
+
+    it('matches subscribed feeds after trailing-slash or fragment differences', async () => {
+        const get = vi.fn().mockResolvedValue({
+            id: 1,
+            url: 'https://example.com/article'
+        })
+        const query = vi.fn().mockResolvedValue([{id: 1}])
+        const executeScript = vi.fn().mockResolvedValue([
+            {
+                result: [
+                    {
+                        url: 'https://example.com/feed/#latest',
+                        title: 'Feed',
+                        type: 'application/rss+xml',
+                        source: 'link'
+                    }
+                ]
+            }
+        ])
+        vi.stubGlobal('chrome', {
+            tabs: {get, query},
+            scripting: {executeScript}
+        })
+        await seedFeed({url: 'https://example.com/feed/'})
+
+        const result = await getActiveDiscovery()
+
+        expect(result.feeds[0].subscribed).toBe(true)
     })
 
     it('returns nulls when no tab is active', async () => {

@@ -1,6 +1,7 @@
 import {db} from '../db/db'
 import {getSettings} from '../db/settings'
 import type {Feed} from '../db/types'
+import {canonicalFeedUrl} from '../shared/model/feed-url'
 import {generateOpml, parseOpmlFeeds} from '../shared/parser/parse-opml'
 import {parseFeedDocument} from '../shared/parser/parse-feed'
 import {syncActionBadge} from './badge'
@@ -63,6 +64,7 @@ export function normalizeFeedUrl(raw: string): string {
         throw new Error('Enter a valid http(s) feed URL')
     }
 
+    url.hash = ''
     return url.toString()
 }
 
@@ -277,7 +279,9 @@ export async function runDueFeeds(
 
 async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise<CommandResult> {
     const url = normalizeFeedUrl(command.url)
-    if (await db.feeds.where('url').equals(url).first()) {
+    const existingFeeds = await db.feeds.toArray()
+    const canonicalUrl = canonicalFeedUrl(url)
+    if (existingFeeds.some((feed) => canonicalFeedUrl(feed.url) === canonicalUrl)) {
         throw new Error('Feed already exists')
     }
     if (command.folderId) {
@@ -298,6 +302,14 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
     const parsed = parseFeedDocument(fetched.text)
     const now = Date.now()
     const finalUrl = normalizeFeedUrl(fetched.finalUrl)
+    if (
+        existingFeeds.some(
+            (feed) => canonicalFeedUrl(feed.url) === canonicalFeedUrl(finalUrl)
+        )
+    ) {
+        throw new Error('Feed already exists')
+    }
+
     const feed: Feed = {
         id: crypto.randomUUID(),
         url: finalUrl,

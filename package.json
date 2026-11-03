@@ -47,7 +47,7 @@
     "build:edge": "extension build --browser edge",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "node scripts/e2e-smoke.mjs",
+    "test:e2e": "node tests/e2e/smoke.mjs",
     "typecheck": "tsc --noEmit"
   },
   "packageManager": "npm@11.20.0"

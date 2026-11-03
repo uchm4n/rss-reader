@@ -30,8 +30,7 @@ There is no account, hosted API, sync, analytics or remote push.
 - `src/shared/parser` normalizes RSS, Atom, RDF, JSON Feed and OPML with feedsmith.
 - `src/shared/model` contains pure helpers for the feed tree, unread counts, search, selection and post formatting.
 
-Only feed URLs, article links and images referenced by feeds are fetched.
-Stored posts render without a network connection; refreshing needs one.
+Only feed URLs, article links, images referenced by feeds and a bounded set of same-origin feed candidates are fetched. Stored posts render without a network connection; refreshing needs one.
 
 ## Data behaviour
 

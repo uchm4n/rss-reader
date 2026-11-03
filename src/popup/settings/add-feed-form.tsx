@@ -34,12 +34,14 @@ export function AddFeedForm({
     const [folderId, setFolderId] = useState('')
     const [refreshInterval, setRefreshInterval] = useState('')
     const [busy, setBusy] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     const submit = async (event: FormEvent) => {
         event.preventDefault()
         if (!url.trim()) return
 
         setBusy(true)
+        setError(null)
         try {
             await sendCommand({
                 type: 'feed:add',
@@ -52,7 +54,10 @@ export function AddFeedForm({
             onAdded()
             toast.success('Feed added')
         } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Could not add feed')
+            const message =
+                error instanceof Error ? error.message : 'Could not add feed'
+            setError(message)
+            toast.error(message)
         } finally {
             setBusy(false)
         }
@@ -105,6 +110,7 @@ export function AddFeedForm({
                     ))}
                 </select>
             </div>
+            {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
         </form>
     )
 }

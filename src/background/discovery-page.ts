@@ -11,7 +11,7 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
     const pageUrl = location.href
     const contentType = document.contentType || ''
     const feedMime = /(rss|atom|rdf|feed\+json)/i
-    const feedPath = /\.(rss|atom|rdf)(?:$|[?#])/i
+    const feedPath = /\.(rss|atom|rdf)(\.xml)?(?:$|[?#])/i
     const feedLikePath = /(^|\/)(feed|rss|atom)(\/|$)/i
     const seen = new Set<string>()
     const feeds: DiscoveredFeed[] = []
@@ -45,10 +45,34 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
         )
     }
 
+    const readPrefix = async (response: Response, limit: number): Promise<string> => {
+        const contentLength = Number(response.headers.get('content-length'))
+        if (Number.isFinite(contentLength) && contentLength > 5 * 1024 * 1024) {
+            return ''
+        }
+
+        const reader = response.body?.getReader()
+        if (!reader) return (await response.text()).slice(0, limit)
+
+        const decoder = new TextDecoder()
+        let text = ''
+        try {
+            while (text.length < limit) {
+                const {done, value} = await reader.read()
+                if (done) break
+                text += decoder.decode(value, {stream: true})
+            }
+        } finally {
+            await reader.cancel().catch(() => {})
+        }
+
+        return text.slice(0, limit)
+    }
+
     const path = location.pathname
-    const bodyText = document.body?.textContent?.slice(0, 4096) ?? ''
     const bodyIsFeed =
-        /(xml|text\/plain|json)/i.test(contentType) && looksLikeFeed(bodyText)
+        /(xml|text\/plain|json)/i.test(contentType) &&
+        looksLikeFeed(document.body?.textContent?.slice(0, 4096) ?? '')
 
     if (
         feedMime.test(contentType) ||
@@ -80,7 +104,7 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
         }
         if (
             !feedMime.test(type) &&
-            !/\.(rss|atom|rdf|json)(?:$|[?#])/i.test(pathname) &&
+            !/\.(rss|atom|rdf)(?:$|[?#])/i.test(pathname) &&
             !feedLikePath.test(pathname)
         ) {
             continue
@@ -98,37 +122,46 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
 
     const basePath = path.replace(/\/+$/, '')
     const candidates = [
-        `${basePath}.rss`,
-        `${basePath}.atom`,
-        `${basePath}/feed`,
-        `${basePath}/rss`,
-        `${basePath}/rss.xml`,
-        `${basePath}/atom.xml`,
-        '/feed',
-        '/rss.xml',
-        '/atom.xml',
-        '/feed.json'
+        ...new Set(
+            [
+                `${basePath}.rss`,
+                `${basePath}.atom`,
+                `${basePath}/feed`,
+                `${basePath}/rss`,
+                `${basePath}/rss.xml`,
+                `${basePath}/atom.xml`,
+                '/feed',
+                '/rss.xml',
+                '/atom.xml',
+                '/feed.json'
+            ]
+                .map(absoluteUrl)
+                .filter((candidate): candidate is string => candidate !== null)
+        )
     ]
-        .map(absoluteUrl)
-        .filter((candidate): candidate is string => candidate !== null)
 
     const deadline = Date.now() + 4_000
     for (const candidate of candidates) {
-        if (Date.now() >= deadline) break
+        const remaining = deadline - Date.now()
+        if (remaining <= 0) break
 
         const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), 1_500)
+        const timer = setTimeout(
+            () => controller.abort(),
+            Math.min(1_500, remaining)
+        )
         try {
             const response = await fetch(candidate, {
                 credentials: 'include',
                 signal: controller.signal,
                 headers: {
-                    Accept: 'application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5'
+                    Accept: 'application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5',
+                    Range: 'bytes=0-4095'
                 }
             })
 
             if (!response.ok) continue
-            const text = await response.text()
+            const text = await readPrefix(response, 4096)
             if (!looksLikeFeed(text)) continue
 
             return [

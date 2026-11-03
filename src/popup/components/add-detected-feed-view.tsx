@@ -59,7 +59,7 @@ export function AddDetectedFeedView({
                                                 {feed.title}
                                             </span>
                                             <span className="block truncate text-[11px] text-muted-foreground">
-                                                {feed.url}
+                                                {feed.type || 'Feed'} · {feed.url}
                                             </span>
                                         </span>
                                     </label>

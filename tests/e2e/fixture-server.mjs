@@ -211,6 +211,18 @@ export async function startFixtureServer(port = 0) {
       case '/article.rss':
         send(response, 200, 'application/rss+xml', rssDocument(articleItems))
         return
+      case '/multi.html':
+        send(
+          response,
+          200,
+          'text/html',
+          `<!doctype html><html><head>
+            <title>Multiple feeds</title>
+            <link rel="alternate" type="application/rss+xml" title="Article feed" href="/article.rss">
+            <link rel="alternate" type="application/atom+xml" title="Probe feed" href="/probe.rss">
+          </head><body><h1>Multiple</h1></body></html>`
+        )
+        return
       case '/add-article-item': {
         articleAdded += 1
         const now = Date.now()

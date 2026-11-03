@@ -1,4 +1,5 @@
 import {db} from '../db/db'
+import {canonicalFeedUrl} from '../shared/model/feed-url'
 import {discoverPageFeeds, type DiscoveredFeed} from './discovery-page'
 
 const CACHE_TTL_MS = 10 * 60_000
@@ -7,6 +8,12 @@ interface CachedDiscovery {
     url: string
     feeds: DiscoveredFeed[]
     expiresAt: number
+}
+
+interface DetectResult {
+    tabId: number
+    pageUrl: string | null
+    feeds: DiscoveredFeed[]
 }
 
 export interface DiscoveryFeed extends DiscoveredFeed {
@@ -20,6 +27,8 @@ export interface DiscoveryResult {
 }
 
 const cache = new Map<number, CachedDiscovery>()
+const inflight = new Map<number, Promise<DetectResult>>()
+const generations = new Map<number, number>()
 
 function isHttpUrl(url: string | undefined): url is string {
     return Boolean(url && /^https?:\/\//i.test(url))
@@ -27,14 +36,14 @@ function isHttpUrl(url: string | undefined): url is string {
 
 async function withSubscribed(feeds: DiscoveredFeed[]): Promise<DiscoveryFeed[]> {
     const stored = await db.feeds.toArray()
-    const urls = new Set(stored.map((feed) => feed.url))
-    return feeds.map((feed) => ({...feed, subscribed: urls.has(feed.url)}))
+    const urls = new Set(stored.map((feed) => canonicalFeedUrl(feed.url)))
+    return feeds.map((feed) => ({
+        ...feed,
+        subscribed: urls.has(canonicalFeedUrl(feed.url))
+    }))
 }
 
-export async function detectTab(
-    tabId: number,
-    options: {force?: boolean} = {}
-): Promise<{tabId: number; pageUrl: string | null; feeds: DiscoveredFeed[]}> {
+async function runDetect(tabId: number, generation: number): Promise<DetectResult> {
     let tab: chrome.tabs.Tab | null = null
     try {
         tab = await chrome.tabs.get(tabId)
@@ -49,16 +58,6 @@ export async function detectTab(
     }
 
     const pageUrl = tab.url
-    const cached = cache.get(tabId)
-    if (
-        !options.force &&
-        cached &&
-        cached.url === pageUrl &&
-        cached.expiresAt > Date.now()
-    ) {
-        return {tabId, pageUrl, feeds: cached.feeds}
-    }
-
     let feeds: DiscoveredFeed[] = []
     try {
         const results = await chrome.scripting.executeScript({
@@ -71,12 +70,48 @@ export async function detectTab(
         // Restricted pages and injection failures simply have no feeds.
     }
 
+    let latest: chrome.tabs.Tab | null = null
+    try {
+        latest = await chrome.tabs.get(tabId)
+    } catch {
+        // The tab closed during detection.
+    }
+
+    if (
+        !latest ||
+        latest.url !== pageUrl ||
+        (generations.get(tabId) ?? 0) !== generation
+    ) {
+        cache.delete(tabId)
+        return {tabId, pageUrl: latest?.url ?? null, feeds: []}
+    }
+
     cache.set(tabId, {
         url: pageUrl,
         feeds,
         expiresAt: Date.now() + CACHE_TTL_MS
     })
     return {tabId, pageUrl, feeds}
+}
+
+export async function detectTab(
+    tabId: number,
+    options: {force?: boolean} = {}
+): Promise<DetectResult> {
+    const cached = cache.get(tabId)
+    if (!options.force && cached && cached.expiresAt > Date.now()) {
+        return {tabId, pageUrl: cached.url, feeds: cached.feeds}
+    }
+
+    const running = inflight.get(tabId)
+    if (running) return running
+
+    const generation = generations.get(tabId) ?? 0
+    const task = runDetect(tabId, generation).finally(() => {
+        if (inflight.get(tabId) === task) inflight.delete(tabId)
+    })
+    inflight.set(tabId, task)
+    return task
 }
 
 export async function getDiscoveryForTab(
@@ -114,4 +149,6 @@ export async function hasUnsubscribedForTab(
 
 export function clearDiscovery(tabId: number): void {
     cache.delete(tabId)
+    inflight.delete(tabId)
+    generations.set(tabId, (generations.get(tabId) ?? 0) + 1)
 }

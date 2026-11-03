@@ -1,7 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {refreshFeed, runDueFeeds} from '../../src/background/messages'
 import {db} from '../../src/db/db'
-import {seedFeed} from '../helpers/db'
+import {postFixture, seedFeed} from '../helpers/db'
 
 const rss = `<?xml version="1.0"?>
 <rss version="2.0"><channel>
@@ -90,6 +90,7 @@ describe('runDueFeeds', () => {
       url: 'https://www.reddit.com/r/news.rss',
       fetchMode: 'page'
     })
+    await db.posts.add(postFixture({id: 'existing', feedId: feed.id}))
 
     await expect(refreshFeed(feed.id, 1_000)).resolves.toEqual({
       inserted: 0,
@@ -102,7 +103,7 @@ describe('runDueFeeds', () => {
       lastError: 'Open a tab on this site to refresh'
     })
     expect(stored?.nextFetchAt).toBeGreaterThan(1_000)
-    expect(await db.posts.count()).toBe(0)
+    expect(await db.posts.count()).toBe(1)
   })
 
   it('switches a background feed to page mode when the fallback succeeds', async () => {

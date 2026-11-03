@@ -39,11 +39,18 @@ chrome.tabs.onActivated.addListener(({tabId}) => {
 })
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (changeInfo.status !== 'complete' && !changeInfo.url) return
+    if (changeInfo.url) clearDiscovery(tabId)
+    if (changeInfo.status !== 'complete') return
 
-    void refreshAction(tabId, {forceDiscovery: true}).catch((error) =>
-        console.error('RSS Reader tab icon update failed', error)
-    )
+    void chrome.tabs
+        .get(tabId)
+        .then((tab) => {
+            if (!tab.active) return
+            return refreshAction(tabId, {forceDiscovery: true})
+        })
+        .catch((error) =>
+            console.error('RSS Reader tab icon update failed', error)
+        )
 })
 
 chrome.tabs.onRemoved.addListener((tabId) => {

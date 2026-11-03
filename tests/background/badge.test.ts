@@ -98,4 +98,31 @@ describe('syncActionBadge', () => {
         expect(feedAddIcon).toHaveBeenCalledWith('add-amber')
         expect(action.setIcon).toHaveBeenCalledWith({tabId: 1, imageData})
     })
+
+    it('falls back to the normal icon when icon composition fails', async () => {
+        hasUnsubscribedForTab.mockResolvedValue(true)
+        feedAddIcon.mockRejectedValueOnce(new Error('canvas failed'))
+        await seedFeed({unreadCount: 0})
+        const action = mockChromeAction()
+
+        await syncActionBadge()
+
+        expect(action.setIcon).toHaveBeenCalledWith({
+            tabId: 1,
+            path: GRAY_ACTION_ICONS
+        })
+    })
+
+    it('sets the global icon when no tab is active', async () => {
+        await seedFeed({unreadCount: 0})
+        const action = mockChromeAction()
+        const chromeMock = globalThis.chrome as unknown as {
+            tabs: {query: ReturnType<typeof vi.fn>}
+        }
+        chromeMock.tabs.query.mockResolvedValue([])
+
+        await syncActionBadge()
+
+        expect(action.setIcon).toHaveBeenCalledWith({path: GRAY_ACTION_ICONS})
+    })
 })

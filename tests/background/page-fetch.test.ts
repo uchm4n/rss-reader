@@ -6,6 +6,7 @@ import {
 } from '../../src/background/page-fetch'
 
 afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
 })
 
@@ -107,6 +108,46 @@ describe('fetchInPage', () => {
         await expect(fetchInPage('https://example.com/feed')).resolves.toEqual({
             status: 'error',
             error: 'HTTP 403'
+        })
+    })
+
+    it('rejects a response with an oversized content length', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(
+                new Response('small', {
+                    status: 200,
+                    headers: {'content-length': String(5 * 1024 * 1024 + 1)}
+                })
+            )
+        )
+
+        await expect(fetchInPage('https://example.com/feed')).resolves.toEqual({
+            status: 'error',
+            error: 'Feed is larger than 5 MB'
+        })
+    })
+
+    it('times out a stalled page fetch', async () => {
+        vi.useFakeTimers()
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(
+                (_url, init) =>
+                    new Promise((_resolve, reject) => {
+                        init?.signal?.addEventListener('abort', () =>
+                            reject(new Error('aborted'))
+                        )
+                    })
+            )
+        )
+
+        const pending = fetchInPage('https://example.com/feed')
+        await vi.advanceTimersByTimeAsync(20_000)
+
+        await expect(pending).resolves.toEqual({
+            status: 'error',
+            error: 'Request timed out'
         })
     })
 })
