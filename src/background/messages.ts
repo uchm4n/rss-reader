@@ -72,6 +72,14 @@ function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error)
 }
 
+function matchesFeedUrl(feed: Feed, url: string): boolean {
+    const canonical = canonicalFeedUrl(url)
+    return (
+        canonicalFeedUrl(feed.url) === canonical ||
+        (Boolean(feed.sourceUrl) && canonicalFeedUrl(feed.sourceUrl!) === canonical)
+    )
+}
+
 function faviconFor(
     imageUrl: string | null,
     siteUrl: string | null,
@@ -280,8 +288,7 @@ export async function runDueFeeds(
 async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise<CommandResult> {
     const url = normalizeFeedUrl(command.url)
     const existingFeeds = await db.feeds.toArray()
-    const canonicalUrl = canonicalFeedUrl(url)
-    if (existingFeeds.some((feed) => canonicalFeedUrl(feed.url) === canonicalUrl)) {
+    if (existingFeeds.some((feed) => matchesFeedUrl(feed, url))) {
         throw new Error('Feed already exists')
     }
     if (command.folderId) {
@@ -302,17 +309,14 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
     const parsed = parseFeedDocument(fetched.text)
     const now = Date.now()
     const finalUrl = normalizeFeedUrl(fetched.finalUrl)
-    if (
-        existingFeeds.some(
-            (feed) => canonicalFeedUrl(feed.url) === canonicalFeedUrl(finalUrl)
-        )
-    ) {
+    if (existingFeeds.some((feed) => matchesFeedUrl(feed, finalUrl))) {
         throw new Error('Feed already exists')
     }
 
     const feed: Feed = {
         id: crypto.randomUUID(),
         url: finalUrl,
+        sourceUrl: url,
         siteUrl: parsed.siteUrl,
         title: parsed.title,
         description: parsed.description,
@@ -386,6 +390,7 @@ async function importOpml(xml: string): Promise<CommandResult> {
         await db.feeds.add({
             id: crypto.randomUUID(),
             url,
+            sourceUrl: url,
             siteUrl: null,
             title: entry.title,
             description: null,

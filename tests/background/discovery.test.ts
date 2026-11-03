@@ -151,6 +151,38 @@ describe('getActiveDiscovery', () => {
         expect(result.feeds[0].subscribed).toBe(true)
     })
 
+    it('matches a feed stored under its redirected final URL', async () => {
+        const get = vi.fn().mockResolvedValue({
+            id: 1,
+            url: 'https://example.com/article'
+        })
+        const query = vi.fn().mockResolvedValue([{id: 1}])
+        const executeScript = vi.fn().mockResolvedValue([
+            {
+                result: [
+                    {
+                        url: 'https://example.com/feed',
+                        title: 'Feed',
+                        type: 'application/rss+xml',
+                        source: 'link'
+                    }
+                ]
+            }
+        ])
+        vi.stubGlobal('chrome', {
+            tabs: {get, query},
+            scripting: {executeScript}
+        })
+        await seedFeed({
+            url: 'https://cdn.example/feed-123',
+            sourceUrl: 'https://example.com/feed'
+        })
+
+        const result = await getActiveDiscovery()
+
+        expect(result.feeds[0].subscribed).toBe(true)
+    })
+
     it('returns nulls when no tab is active', async () => {
         mockChrome(null)
 

@@ -36,7 +36,12 @@ function isHttpUrl(url: string | undefined): url is string {
 
 async function withSubscribed(feeds: DiscoveredFeed[]): Promise<DiscoveryFeed[]> {
     const stored = await db.feeds.toArray()
-    const urls = new Set(stored.map((feed) => canonicalFeedUrl(feed.url)))
+    const urls = new Set(
+        stored.flatMap((feed) => [
+            canonicalFeedUrl(feed.url),
+            ...(feed.sourceUrl ? [canonicalFeedUrl(feed.sourceUrl)] : [])
+        ])
+    )
     return feeds.map((feed) => ({
         ...feed,
         subscribed: urls.has(canonicalFeedUrl(feed.url))

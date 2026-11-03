@@ -1,6 +1,7 @@
 export interface Feed {
     id: string
     url: string
+    sourceUrl?: string
     siteUrl: string | null
     title: string
     description: string | null
