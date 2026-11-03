@@ -33,6 +33,22 @@ describe('discoverPageFeeds', () => {
         ])
     })
 
+    it('returns multiple distinct feed links', async () => {
+        page(
+            'https://example.com/article',
+            `<html><head>
+                <link rel="alternate" type="application/rss+xml" title="RSS" href="/feed.xml">
+                <link rel="alternate" type="application/atom+xml" title="Atom" href="/atom.xml">
+            </head></html>`
+        )
+
+        const feeds = await discoverPageFeeds()
+        expect(feeds.map((feed) => feed.url)).toEqual([
+            'https://example.com/feed.xml',
+            'https://example.com/atom.xml'
+        ])
+    })
+
     it('deduplicates multiple links to the same feed', async () => {
         page(
             'https://example.com/article',
@@ -105,6 +121,21 @@ describe('discoverPageFeeds', () => {
             return new Response('not a feed', {status: 404})
         })
         vi.stubGlobal('fetch', fetchMock)
+
+        await expect(discoverPageFeeds()).resolves.toEqual([])
+    })
+
+    it('rejects an HTML body even when labeled as a feed', async () => {
+        page('https://example.com/article', '<html><body>Article</body></html>')
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(
+                new Response('<html><body>Not found</body></html>', {
+                    status: 200,
+                    headers: {'content-type': 'application/rss+xml'}
+                })
+            )
+        )
 
         await expect(discoverPageFeeds()).resolves.toEqual([])
     })

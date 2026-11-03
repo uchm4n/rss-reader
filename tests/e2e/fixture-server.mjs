@@ -85,12 +85,32 @@ function opmlDocument(baseUrl) {
 </opml>`
 }
 
-function send(response, status, contentType, body) {
+function send(response, status, contentType, body, headers = {}) {
   response.writeHead(status, {
     'content-type': contentType,
-    'cache-control': 'no-store'
+    'cache-control': 'no-store',
+    ...headers
   })
   response.end(body)
+}
+
+function discoveryItems(prefix) {
+  return [
+    {
+      guid: `${prefix}-1`,
+      title: `${prefix} One`,
+      link: `http://127.0.0.1/${prefix}/1`,
+      pubDate: 'Sun, 04 Jan 2026 08:00:00 GMT',
+      publishedAt: Date.parse('2026-01-04T08:00:00Z')
+    },
+    {
+      guid: `${prefix}-2`,
+      title: `${prefix} Two`,
+      link: `http://127.0.0.1/${prefix}/2`,
+      pubDate: 'Sun, 04 Jan 2026 09:00:00 GMT',
+      publishedAt: Date.parse('2026-01-04T09:00:00Z')
+    }
+  ]
 }
 
 export async function startFixtureServer(port = 0) {
@@ -154,6 +174,12 @@ export async function startFixtureServer(port = 0) {
     pubDate: new Date(Date.parse('2026-01-01T00:00:00Z') + index * 60_000).toUTCString(),
     publishedAt: Date.parse('2026-01-01T00:00:00Z') + index * 60_000
   }))
+  const articleItems = discoveryItems('article')
+  const probeItems = discoveryItems('probe')
+  const redditItems = discoveryItems('reddit')
+  const cookieItems = discoveryItems('cookie')
+  let articleAdded = 0
+  let cookieAdded = 0
 
   const server = http.createServer((request, response) => {
     const url = new URL(request.url ?? '/', base())
@@ -171,6 +197,87 @@ export async function startFixtureServer(port = 0) {
       case '/retention.xml':
         send(response, 200, 'application/rss+xml', rssDocument(retentionItems))
         return
+      case '/article.html':
+        send(
+          response,
+          200,
+          'text/html',
+          `<!doctype html><html><head>
+            <title>Article page</title>
+            <link rel="alternate" type="application/rss+xml" title="Article feed" href="/article.rss">
+          </head><body><h1>Article</h1></body></html>`
+        )
+        return
+      case '/article.rss':
+        send(response, 200, 'application/rss+xml', rssDocument(articleItems))
+        return
+      case '/add-article-item': {
+        articleAdded += 1
+        const now = Date.now()
+        articleItems.push({
+          guid: `article-new-${articleAdded}`,
+          title: `Article new ${articleAdded}`,
+          link: `http://127.0.0.1/article/new-${articleAdded}`,
+          pubDate: new Date(now).toUTCString(),
+          publishedAt: now
+        })
+        send(response, 200, 'application/json', JSON.stringify({added: articleAdded}))
+        return
+      }
+      case '/probe':
+        send(
+          response,
+          200,
+          'text/html',
+          '<!doctype html><html><head><title>Probe page</title></head><body>No link</body></html>'
+        )
+        return
+      case '/probe.rss':
+        send(response, 200, 'application/rss+xml', rssDocument(probeItems))
+        return
+      case '/reddit-like/news':
+        send(
+          response,
+          200,
+          'text/html',
+          '<!doctype html><html><head><title>News</title></head><body>Reddit-like page</body></html>'
+        )
+        return
+      case '/reddit-like/news.rss':
+        send(response, 200, 'application/rss+xml', rssDocument(redditItems))
+        return
+      case '/cookie-page':
+        send(
+          response,
+          200,
+          'text/html',
+          '<!doctype html><html><head><title>Cookie page</title></head><body>Cookie</body></html>',
+          {'set-cookie': 'rss_session=1; Path=/; SameSite=Lax'}
+        )
+        return
+      case '/cookie-page.rss':
+        if (
+          !(request.headers.cookie ?? '').includes('rss_session=1') ||
+          request.headers['sec-fetch-site'] !== 'same-origin'
+        ) {
+          send(response, 403, 'text/plain', 'Forbidden')
+          return
+        }
+        send(response, 200, 'application/rss+xml', rssDocument(cookieItems))
+        return
+      case '/add-cookie-item': {
+        cookieAdded += 1
+        const now = Date.now()
+        cookieItems.push({
+          guid: `cookie-new-${cookieAdded}`,
+          title: `Cookie new ${cookieAdded}`,
+          link: `http://127.0.0.1/cookie/new-${cookieAdded}`,
+          pubDate: new Date(now).toUTCString(),
+          publishedAt: now
+        })
+        send(response, 200, 'application/json', JSON.stringify({added: cookieAdded}))
+        return
+      }
       case '/opml.xml':
         send(response, 200, 'text/xml', opmlDocument(base()))
         return

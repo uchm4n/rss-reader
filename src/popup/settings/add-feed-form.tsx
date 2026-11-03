@@ -19,12 +19,18 @@ const selectClass =
 
 export function AddFeedForm({
                                 folders,
-                                onAdded
+                                onAdded,
+                                initialUrl = '',
+                                sourceTabId,
+                                onCancel
                             }: {
     folders: Folder[]
     onAdded: () => void
+    initialUrl?: string
+    sourceTabId?: number
+    onCancel?: () => void
 }) {
-    const [url, setUrl] = useState('')
+    const [url, setUrl] = useState(initialUrl)
     const [folderId, setFolderId] = useState('')
     const [refreshInterval, setRefreshInterval] = useState('')
     const [busy, setBusy] = useState(false)
@@ -39,7 +45,8 @@ export function AddFeedForm({
                 type: 'feed:add',
                 url,
                 folderId: folderId || null,
-                refreshInterval: refreshInterval ? Number(refreshInterval) : null
+                refreshInterval: refreshInterval ? Number(refreshInterval) : null,
+                sourceTabId
             })
             setUrl('')
             onAdded()
@@ -64,6 +71,11 @@ export function AddFeedForm({
                 <Button type="submit" size="sm" disabled={busy || !url.trim()}>
                     {busy ? 'Adding…' : 'Add feed'}
                 </Button>
+                {onCancel ? (
+                    <Button type="button" variant="outline" size="sm" onClick={onCancel}>
+                        Cancel
+                    </Button>
+                ) : null}
             </div>
             <div className="flex items-center gap-2">
                 <select

@@ -14,6 +14,18 @@ export const UNREAD_ACTION_ICONS: ActionIconPaths = {
     128: '/extension-icons/icon-unread-128.png'
 }
 
+export type ActionIconKind = 'gray' | 'unread' | 'add-gray' | 'add-amber'
+
 export function actionIconForCount(count: number): ActionIconPaths {
     return count > 0 ? UNREAD_ACTION_ICONS : GRAY_ACTION_ICONS
+}
+
+export function actionIconKind(
+    hasUnsubscribedFeed: boolean,
+    unreadCount: number
+): ActionIconKind {
+    if (hasUnsubscribedFeed) {
+        return unreadCount > 0 ? 'add-amber' : 'add-gray'
+    }
+    return unreadCount > 0 ? 'unread' : 'gray'
 }

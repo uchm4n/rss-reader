@@ -6,6 +6,7 @@ const manifest = JSON.parse(readFileSync('src/manifest.json', 'utf8')) as {
   action: {default_popup: string; default_icon: Record<string, string>}
   icons: Record<string, string>
   default_locale?: string
+  permissions?: string[]
   content_scripts?: unknown
 }
 
@@ -31,5 +32,9 @@ describe('build assets', () => {
 
   it('has no content scripts', () => {
     expect(manifest.content_scripts).toBeUndefined()
+  })
+
+  it('grants scripting for on-demand feed detection', () => {
+    expect(manifest.permissions).toContain('scripting')
   })
 })

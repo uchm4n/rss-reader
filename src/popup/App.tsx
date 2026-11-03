@@ -2,7 +2,9 @@ import {useEffect, useRef, useState} from 'react'
 import {toast} from 'sonner'
 import {Toaster} from '@/components/ui/sonner'
 import {TooltipProvider} from '@/components/ui/tooltip'
+import type {DiscoveryFeed, DiscoveryResult} from '@/background/discovery'
 import {type Selection, selectionTitle} from '@/shared/model/selection'
+import {AddDetectedFeedView} from './components/add-detected-feed-view'
 import {AppShell} from './components/app-shell'
 import {PostList} from './components/posts/post-list'
 import {PostReader} from './components/posts/post-reader'
@@ -16,6 +18,7 @@ import {useSyncActionBadge} from './hooks/use-action-badge'
 import {useTheme} from './hooks/use-theme'
 import {sendCommand} from './lib/commands'
 import {openExternal} from './platform'
+import type {SettingsSection} from './settings/settings-nav'
 import {SettingsView} from './settings/settings-view'
 
 export default function App() {
@@ -28,12 +31,36 @@ export default function App() {
     )
     const [openPostId, setOpenPostId] = useState<string | null>(null)
     const [settingsOpen, setSettingsOpen] = useState(false)
+    const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
+    const [detectedFeeds, setDetectedFeeds] = useState<DiscoveryFeed[] | null>(null)
+    const [detectedTabId, setDetectedTabId] = useState<number | null>(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const previousSelection = useRef<Selection>({kind: 'all'})
     const appliedStartView = useRef(false)
 
     useSyncActionBadge()
     useTheme()
+
+    useEffect(() => {
+        let cancelled = false
+
+        void sendCommand<DiscoveryResult>({type: 'discovery:active'})
+            .then((result) => {
+                if (cancelled) return
+                const unsubscribed = result.feeds.filter((feed) => !feed.subscribed)
+                if (result.tabId !== null && unsubscribed.length) {
+                    setDetectedTabId(result.tabId)
+                    setDetectedFeeds(unsubscribed)
+                }
+            })
+            .catch(() => {
+                // Discovery is optional; the reader still works without it.
+            })
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
 
     useEffect(() => {
         setOpenPostId(null)
@@ -65,6 +92,11 @@ export default function App() {
         setSelection(previousSelection.current)
     }
 
+    const openSettings = (section: SettingsSection = 'general') => {
+        setSettingsSection(section)
+        setSettingsOpen(true)
+    }
+
     const refresh = async () => {
         setIsRefreshing(true)
         try {
@@ -79,7 +111,31 @@ export default function App() {
     if (settingsOpen) {
         return (
             <TooltipProvider>
-                <SettingsView onBack={() => setSettingsOpen(false)}/>
+                <SettingsView
+                    initialSection={settingsSection}
+                    onBack={() => setSettingsOpen(false)}
+                />
+                <Toaster position="bottom-right"/>
+            </TooltipProvider>
+        )
+    }
+
+    if (detectedFeeds && detectedTabId !== null) {
+        return (
+            <TooltipProvider>
+                <AddDetectedFeedView
+                    feeds={detectedFeeds}
+                    tabId={detectedTabId}
+                    onAdded={() => {
+                        setDetectedFeeds(null)
+                        setDetectedTabId(null)
+                        openSettings('feeds')
+                    }}
+                    onCancel={() => {
+                        setDetectedFeeds(null)
+                        setDetectedTabId(null)
+                    }}
+                />
                 <Toaster position="bottom-right"/>
             </TooltipProvider>
         )
@@ -96,7 +152,7 @@ export default function App() {
                         onSearchSubmit={handleSearchSubmit}
                         onClearSearch={handleClearSearch}
                         onRefresh={() => void refresh()}
-                        onOpenSettings={() => setSettingsOpen(true)}
+                        onOpenSettings={() => openSettings()}
                         isRefreshing={isRefreshing}
                     />
                 }
@@ -104,7 +160,7 @@ export default function App() {
                     <Sidebar
                         selection={selection}
                         onSelect={handleSelect}
-                        onOpenSettings={() => setSettingsOpen(true)}
+                        onOpenSettings={() => openSettings()}
                     />
                 }
             >

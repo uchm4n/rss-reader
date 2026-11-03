@@ -31,21 +31,18 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
         feeds.push(feed)
     }
 
-    const looksLikeFeed = (text: string, type: string): boolean => {
+    const looksLikeFeed = (text: string): boolean => {
         const head = text.slice(0, 4096).trimStart()
         const lower = head.toLowerCase()
 
         if (/<rss[\s>]/i.test(head) || /<feed[\s>]/i.test(head) || /<rdf:rdf[\s>]/i.test(head)) {
             return true
         }
-        if (
+        return (
             head.startsWith('{') &&
             lower.includes('"version"') &&
             lower.includes('"items"')
-        ) {
-            return true
-        }
-        return feedMime.test(type)
+        )
     }
 
     const path = location.pathname
@@ -110,9 +107,9 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
     for (const candidate of candidates) {
         if (Date.now() >= deadline) break
 
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), 1_500)
         try {
-            const controller = new AbortController()
-            const timer = setTimeout(() => controller.abort(), 1_500)
             const response = await fetch(candidate, {
                 credentials: 'include',
                 signal: controller.signal,
@@ -120,11 +117,10 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
                     Accept: 'application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5'
                 }
             })
-            clearTimeout(timer)
 
             if (!response.ok) continue
             const text = await response.text()
-            if (!looksLikeFeed(text, response.headers.get('content-type') || '')) continue
+            if (!looksLikeFeed(text)) continue
 
             return [
                 {
@@ -136,6 +132,8 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
             ]
         } catch {
             // A rejected candidate is not a feed; continue with the next one.
+        } finally {
+            clearTimeout(timer)
         }
     }
 

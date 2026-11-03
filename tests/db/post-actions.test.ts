@@ -6,13 +6,14 @@ import {
 import {db} from '../../src/db/db'
 import {postFixture, seedFeed} from '../helpers/db'
 
-let setBadgeText: ReturnType<typeof vi.fn>
+let sendMessage: ReturnType<typeof vi.fn>
 
 beforeEach(() => {
-  setBadgeText = vi.fn()
+  sendMessage = vi.fn((_message, callback) => callback?.({ok: true}))
   vi.stubGlobal('chrome', {
+    runtime: {sendMessage},
     action: {
-      setBadgeText,
+      setBadgeText: vi.fn(),
       setBadgeBackgroundColor: vi.fn(),
       setBadgeTextColor: vi.fn(),
       setIcon: vi.fn()
@@ -35,7 +36,10 @@ describe('popup post actions', () => {
 
     expect(await db.posts.get('p1')).toMatchObject({status: true, statusKey: 1})
     expect((await db.feeds.get('feed-1'))?.unreadCount).toBe(0)
-    expect(setBadgeText).toHaveBeenLastCalledWith({text: ''})
+    expect(sendMessage).toHaveBeenLastCalledWith(
+      {type: 'action:refresh'},
+      expect.any(Function)
+    )
   })
 
   it('toggles the star through the popup action', async () => {

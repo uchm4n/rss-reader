@@ -4,6 +4,7 @@ import type {Feed} from '../db/types'
 import {generateOpml, parseOpmlFeeds} from '../shared/parser/parse-opml'
 import {parseFeedDocument} from '../shared/parser/parse-feed'
 import {syncActionBadge} from './badge'
+import {getActiveDiscovery, getDiscoveryForTab} from './discovery'
 import {fetchFeed} from './fetcher'
 import {ingestFeed} from './ingest'
 import {notifyNewPosts} from './notifications'
@@ -37,6 +38,9 @@ export type Command =
     | { type: 'opml:export' }
     | { type: 'data:clear' }
     | { type: 'worker:reschedule' }
+    | { type: 'action:refresh' }
+    | { type: 'discovery:active' }
+    | { type: 'discovery:detect'; tabId?: number }
 
 export type CommandResult =
     | { ok: true; data?: unknown }
@@ -528,6 +532,23 @@ export async function handleCommand(command: Command): Promise<CommandResult> {
                     }))
                 )
                 return {ok: true}
+            }
+
+            case 'action:refresh':
+                await syncActionBadge()
+                return {ok: true}
+
+            case 'discovery:active':
+                return {ok: true, data: await getActiveDiscovery()}
+
+            case 'discovery:detect': {
+                if (command.tabId === undefined) {
+                    return {ok: true, data: await getActiveDiscovery({force: true})}
+                }
+                return {
+                    ok: true,
+                    data: await getDiscoveryForTab(command.tabId, {force: true})
+                }
             }
 
             case 'opml:import':

@@ -9,8 +9,14 @@ import {OpmlSettings} from './opml-settings'
 import {SettingsNav, type SettingsSection} from './settings-nav'
 import {StorageSettings} from './storage-settings'
 
-export function SettingsView({onBack}: { onBack: () => void }) {
-    const [section, setSection] = useState<SettingsSection>('general')
+export function SettingsView({
+    onBack,
+    initialSection = 'general'
+}: {
+    onBack: () => void
+    initialSection?: SettingsSection
+}) {
+    const [section, setSection] = useState<SettingsSection>(initialSection)
 
     return (
         <div className="flex h-150 w-200 flex-col overflow-hidden bg-background text-foreground">

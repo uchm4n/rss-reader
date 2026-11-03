@@ -17,7 +17,7 @@
   "background": {
     "service_worker": "background/index.ts"
   },
-  "permissions": ["alarms", "storage", "unlimitedStorage", "notifications"],
+  "permissions": ["alarms", "storage", "unlimitedStorage", "notifications", "scripting"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "icons": {
     "16": "extension-icons/icon-gray-16.png",

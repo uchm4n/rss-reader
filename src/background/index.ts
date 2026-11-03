@@ -1,6 +1,7 @@
 import {db} from '../db/db'
 import {getSettings} from '../db/settings'
-import {syncActionBadge} from './badge'
+import {refreshAction} from './badge'
+import {clearDiscovery} from './discovery'
 import {type Command, type CommandResult, handleCommand, runDueFeeds} from './messages'
 import {ALARM_NAME, nextDueAt} from './scheduler'
 
@@ -20,7 +21,7 @@ async function scheduleAlarm(): Promise<void> {
 
 async function initialize(): Promise<void> {
     await scheduleAlarm()
-    await syncActionBadge()
+    await refreshAction()
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -29,6 +30,24 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onStartup.addListener(() => {
     void initialize().catch((error) => console.error('RSS Reader initialize failed', error))
+})
+
+chrome.tabs.onActivated.addListener(({tabId}) => {
+    void refreshAction(tabId).catch((error) =>
+        console.error('RSS Reader tab icon update failed', error)
+    )
+})
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status !== 'complete' && !changeInfo.url) return
+
+    void refreshAction(tabId, {forceDiscovery: true}).catch((error) =>
+        console.error('RSS Reader tab icon update failed', error)
+    )
+})
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+    clearDiscovery(tabId)
 })
 
 chrome.alarms.onAlarm.addListener((alarm) => {
