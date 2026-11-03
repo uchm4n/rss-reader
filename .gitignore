@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+.extension-js/
+.superpowers/
+.openidea/
+docs/
