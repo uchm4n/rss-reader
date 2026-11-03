@@ -20,7 +20,13 @@ function ReaderSkeleton({onBack}: { onBack: () => void }) {
     return (
         <div className="flex h-full flex-col">
             <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-                <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to posts">
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onBack}
+                    aria-label="Back to posts"
+                    className="hover:bg-brand/10 hover:text-brand"
+                >
                     <ArrowLeft className="size-4"/>
                 </Button>
                 <Skeleton className="h-4 w-32"/>
@@ -58,7 +64,13 @@ export function ReaderHeader({
 }) {
     return (
         <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-            <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to posts">
+            <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={onBack}
+                aria-label="Back to posts"
+                className="hover:bg-brand/10 hover:text-brand"
+            >
                 <ArrowLeft className="size-4"/>
             </Button>
 
@@ -75,24 +87,40 @@ export function ReaderHeader({
                     size="icon-sm"
                     onClick={onToggleStar}
                     aria-label={post.starred ? 'Unstar post' : 'Star post'}
+                    className="hover:bg-star/10 hover:text-star"
                 >
                     <Star
                         className={
-                            post.starred ? 'size-4 fill-current text-amber-500' : 'size-4'
+                            post.starred ? 'size-4 fill-current text-star' : 'size-4'
                         }
                     />
                 </Button>
                 {post.status ? (
-                    <Button variant="ghost" size="sm" onClick={onMarkUnread}>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onMarkUnread}
+                        className="hover:bg-brand/10 hover:text-brand"
+                    >
                         Mark unread
                     </Button>
                 ) : (
-                    <Button variant="ghost" size="sm" onClick={onMarkRead}>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onMarkRead}
+                        className="hover:bg-brand/10 hover:text-brand"
+                    >
                         Mark read
                     </Button>
                 )}
                 {post.link ? (
-                    <Button variant="ghost" size="sm" onClick={() => onOpenOriginal(post.link!)}>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onOpenOriginal(post.link!)}
+                        className="hover:bg-refresh/10 hover:text-refresh"
+                    >
                         <ExternalLink className="size-4"/>
                         Open original
                     </Button>

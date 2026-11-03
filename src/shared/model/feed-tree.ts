@@ -1,4 +1,4 @@
-import type {Feed, Folder} from '../../db/types'
+import type {Feed, Folder} from '@/db/types.ts'
 
 export type FeedTreeNode =
     | { type: 'feed'; feed: Feed }
@@ -33,5 +33,5 @@ export function buildFeedTree(feeds: Feed[], folders: Folder[]): FeedTreeNode[] 
         .sort(byTitle)
         .map((feed) => ({type: 'feed', feed}))
 
-    return [...folderNodes, ...rootFeeds]
+    return [...rootFeeds, ...folderNodes]
 }

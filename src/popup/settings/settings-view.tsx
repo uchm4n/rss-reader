@@ -25,7 +25,13 @@ export function SettingsView({
     return (
         <div className="flex h-150 w-200 flex-col overflow-hidden bg-background text-foreground">
             <header className="flex h-13 shrink-0 items-center gap-2 border-b px-3">
-                <Button variant="ghost" size="icon-sm" onClick={onBack} aria-label="Back to reader">
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onBack}
+                    aria-label="Back to reader"
+                    className="hover:bg-settings/10 hover:text-settings"
+                >
                     <ArrowLeft className="size-4"/>
                 </Button>
                 <span className="text-sm font-semibold">Settings</span>

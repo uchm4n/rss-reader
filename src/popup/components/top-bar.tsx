@@ -55,7 +55,7 @@ export function TopBar({
                         type="button"
                         onClick={onClearSearch}
                         aria-label="Clear search"
-                        className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-brand/10 hover:text-brand"
                     >
                         <X className="size-3.5"/>
                     </button>
@@ -70,6 +70,7 @@ export function TopBar({
                             size="icon-sm"
                             onClick={onAddFeed}
                             aria-label="Add feed"
+                            className="hover:bg-add/10 hover:text-add"
                         >
                             <Plus className="size-4"/>
                         </Button>
@@ -91,6 +92,7 @@ export function TopBar({
                         size="icon-sm"
                         onClick={onRefresh}
                         aria-label="Refresh feeds"
+                        className="hover:bg-refresh/10 hover:text-refresh"
                     >
                         <RefreshCw className={isRefreshing ? 'size-4 animate-spin' : 'size-4'}/>
                     </Button>
@@ -105,6 +107,7 @@ export function TopBar({
                         size="icon-sm"
                         onClick={onOpenSettings}
                         aria-label="Open settings"
+                        className="hover:bg-settings/10 hover:text-settings"
                     >
                         <Settings className="size-4"/>
                     </Button>

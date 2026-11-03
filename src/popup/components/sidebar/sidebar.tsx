@@ -53,6 +53,7 @@ export function Sidebar({selection, onSelect, onOpenSettings}: SidebarProps) {
                     size="icon-sm"
                     onClick={onOpenSettings}
                     aria-label="Open settings"
+                    className="hover:bg-settings/10 hover:text-settings"
                 >
                     <Settings className="size-4"/>
                 </Button>

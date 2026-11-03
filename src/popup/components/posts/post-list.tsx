@@ -79,6 +79,7 @@ export function PostList({selection, onOpenPost}: PostListProps) {
                     size="xs"
                     disabled={!unreadIds.length}
                     onClick={() => void markPostsRead(unreadIds)}
+                    className="hover:bg-brand/10 hover:text-brand"
                 >
                     Mark all as read
                 </Button>

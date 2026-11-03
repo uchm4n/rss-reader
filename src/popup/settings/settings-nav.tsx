@@ -30,12 +30,12 @@ export function SettingsNav({
                         size="sm"
                         aria-current={section === item.id ? 'page' : undefined}
                         className={cn(
-                            'h-8 w-full justify-start gap-2 px-2 font-normal',
+                            'group h-8 w-full justify-start gap-2 px-2 font-normal hover:bg-brand/5',
                             section === item.id && 'bg-accent text-accent-foreground font-medium'
                         )}
                         onClick={() => onSelect(item.id)}
                     >
-                        <Icon className="size-4 shrink-0"/>
+                        <Icon className="size-4 shrink-0 group-hover:text-brand"/>
                         <span className="truncate">{item.label}</span>
                     </Button>
                 )

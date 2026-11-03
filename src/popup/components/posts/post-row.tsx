@@ -15,7 +15,7 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
     return (
         <div
             className={cn(
-                'flex w-full items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/60',
+                'flex w-full items-start gap-3 px-4 py-3 transition-colors hover:bg-brand/5',
                 !post.status && 'bg-muted/30'
             )}
         >
@@ -27,7 +27,7 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
         <span
             className={cn(
                 'mt-1.5 size-2 shrink-0 rounded-full',
-                post.status ? 'bg-transparent' : 'bg-primary'
+                post.status ? 'bg-transparent' : 'bg-unread'
             )}
             aria-hidden="true"
         />
@@ -68,11 +68,11 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
                 type="button"
                 aria-label={post.starred ? 'Unstar post' : 'Star post'}
                 onClick={onToggleStar}
-                className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="mt-0.5 shrink-0 rounded p-1 text-muted-foreground hover:bg-star/10 hover:text-star"
             >
                 <Star
                     className={
-                        post.starred ? 'size-4 fill-current text-amber-500' : 'size-4'
+                        post.starred ? 'size-4 fill-current text-star' : 'size-4'
                     }
                 />
             </button>

@@ -54,17 +54,17 @@ export function FolderTree({
                                 }}
                                 aria-current={selected ? 'page' : undefined}
                                 className={cn(
-                                    'h-8 w-full justify-start gap-1.5 rounded-md pl-1! pr-2! text-left font-normal',
+                                    'group h-8 w-full justify-start gap-1.5 rounded-md pl-1! pr-2! text-left font-normal hover:bg-brand/5',
                                     selected && 'bg-accent text-accent-foreground font-medium'
                                 )}
                             >
                                 <UnreadCount count={node.unreadCount}/>
                                 {isCollapsed ? (
-                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground"/>
+                                    <ChevronRight className="size-3.5 shrink-0 text-muted-foreground group-hover:text-brand"/>
                                 ) : (
-                                    <ChevronDown className="size-3.5 shrink-0 text-muted-foreground"/>
+                                    <ChevronDown className="size-3.5 shrink-0 text-muted-foreground group-hover:text-brand"/>
                                 )}
-                                <Folder className="size-4 shrink-0 text-muted-foreground"/>
+                                <Folder className="size-4 shrink-0 text-muted-foreground group-hover:text-brand"/>
                                 <span className="min-w-0 flex-1 truncate">{node.name}</span>
                             </Button>
                         </div>

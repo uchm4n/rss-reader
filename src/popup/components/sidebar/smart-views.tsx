@@ -12,9 +12,27 @@ interface SmartViewsProps {
 }
 
 const views = [
-    {kind: 'all' as const, label: 'All posts', icon: Rss},
-    {kind: 'unread' as const, label: 'Unread', icon: Inbox},
-    {kind: 'starred' as const, label: 'Starred', icon: Star}
+    {
+        kind: 'all' as const,
+        label: 'All posts',
+        icon: Rss,
+        hover: 'hover:bg-brand/10 hover:text-brand',
+        active: 'bg-brand/15 text-brand'
+    },
+    {
+        kind: 'unread' as const,
+        label: 'Unread',
+        icon: Inbox,
+        hover: 'hover:bg-unread/10 hover:text-unread',
+        active: 'bg-unread/15 text-unread'
+    },
+    {
+        kind: 'starred' as const,
+        label: 'Starred',
+        icon: Star,
+        hover: 'hover:bg-star/10 hover:text-star',
+        active: 'bg-star/15 text-star'
+    }
 ]
 
 export function SmartViews({selection, onSelect}: SmartViewsProps) {
@@ -34,7 +52,8 @@ export function SmartViews({selection, onSelect}: SmartViewsProps) {
                         aria-current={active ? 'page' : undefined}
                         className={cn(
                             'h-8 w-full justify-start gap-2 px-2 font-normal',
-                            active && 'bg-accent text-accent-foreground font-medium'
+                            view.hover,
+                            active && cn('font-medium', view.active)
                         )}
                         onClick={() => onSelect({kind: view.kind})}
                     >
@@ -43,7 +62,7 @@ export function SmartViews({selection, onSelect}: SmartViewsProps) {
                         {view.kind === 'unread' && unreadCount > 0 ? (
                             <Badge
                                 variant="secondary"
-                                className="ml-auto h-5 min-w-5 justify-center px-1 text-[10px]"
+                                className="ml-auto h-5 min-w-5 justify-center bg-unread/10 px-1 text-[10px] text-unread"
                             >
                                 {unreadCount}
                             </Badge>
