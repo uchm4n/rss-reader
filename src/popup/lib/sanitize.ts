@@ -14,7 +14,19 @@ export function sanitizePostHtml(html: string): string {
     }
 
     return DOMPurify.sanitize(html, {
-        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+        FORBID_TAGS: [
+            'script',
+            'style',
+            'link',
+            'meta',
+            'base',
+            'iframe',
+            'object',
+            'embed',
+            'form',
+            'input',
+            'button'
+        ],
         FORBID_ATTR: ['style']
     })
 }

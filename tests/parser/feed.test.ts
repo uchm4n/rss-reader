@@ -91,6 +91,7 @@ describe('parseFeedDocument', () => {
       link: 'https://example.com/1',
       publishedAt: published,
       contentHtml: '<p>Full <b>content</b></p>',
+      contentType: 'html',
       excerpt: 'Hello & welcome',
       author: 'Jane'
     })
@@ -109,6 +110,7 @@ describe('parseFeedDocument', () => {
       link: 'https://example.com/a1',
       publishedAt: published,
       contentHtml: '<p>Atom body</p>',
+      contentType: 'html',
       excerpt: 'Atom summary',
       author: 'Ann'
     })
@@ -127,6 +129,7 @@ describe('parseFeedDocument', () => {
       link: 'https://example.com/j1',
       publishedAt: published,
       contentHtml: '<p>JSON body</p>',
+      contentType: 'html',
       excerpt: 'JSON summary',
       author: 'Jo'
     })
@@ -143,7 +146,40 @@ describe('parseFeedDocument', () => {
       link: 'https://example.com/r1',
       publishedAt: published,
       contentHtml: 'RDF body',
+      contentType: 'html',
       excerpt: 'RDF body'
+    })
+  })
+
+  it('preserves an Atom markdown content type', () => {
+    const feed = parseFeedDocument(`<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Markdown</title>
+  <entry>
+    <id>tag:example.com,2026:md</id>
+    <title>Markdown entry</title>
+    <content type="text/markdown"># Hello</content>
+  </entry>
+</feed>`)
+
+    expect(feed.items[0]).toMatchObject({
+      contentHtml: '# Hello',
+      contentType: 'markdown'
+    })
+  })
+
+  it('marks JSON Feed content_text as text', () => {
+    const feed = parseFeedDocument(
+      JSON.stringify({
+        version: 'https://jsonfeed.org/version/1.1',
+        title: 'Text JSON',
+        items: [{id: 'text-1', content_text: 'Hello\nworld'}]
+      })
+    )
+
+    expect(feed.items[0]).toMatchObject({
+      contentHtml: 'Hello\nworld',
+      contentType: 'text'
     })
   })
 

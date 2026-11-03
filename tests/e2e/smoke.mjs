@@ -426,27 +426,29 @@ async function main() {
     const addButtonState = () =>
       evaluate(
         `(() => {
-          const button = document.querySelector('button[aria-label="Add feed from this page"]')
+          const button = document.querySelector('button[aria-label="Add feed"]')
           return button ? {exists: true, disabled: button.disabled} : {exists: false}
         })()`
       )
 
-    console.log('7. open the add feed screen from the toolbar button')
+    console.log('7. open Settings > Feeds from the toolbar button')
     await popup.send('Page.reload', {ignoreCache: true})
     await waitFor(
       async () => (await addButtonState())?.disabled === false,
-      'add-feed toolbar button did not enable for the detected feed'
+      'add-feed toolbar button was not enabled'
     )
     assert(
-      !(await bodyText()).includes('Add feed'),
-      'the add screen opened automatically'
+      !(await bodyText()).includes('Settings'),
+      'Settings opened automatically'
     )
     await evaluate(
-      `document.querySelector('button[aria-label="Add feed from this page"]')?.click()`
+      `document.querySelector('button[aria-label="Add feed"]')?.click()`
     )
     await waitFor(
-      async () => (await bodyText()).includes('Add feed'),
-      'add-feed toolbar button did not open the add screen'
+      async () =>
+        (await bodyText()).includes('Settings') &&
+        (await evaluate(`Boolean(document.querySelector('input[aria-label="Feed URL"]'))`)),
+      'add-feed toolbar button did not open Settings > Feeds'
     )
     const detectedUrl = await evaluate(
       `document.querySelector('input[aria-label="Feed URL"]')?.value ?? ''`
@@ -455,24 +457,19 @@ async function main() {
       detectedUrl.includes('/reddit-like/news.rss'),
       'detected URL was not prefilled'
     )
-    await evaluate(`(() => {
-      const button = [...document.querySelectorAll('button')].find((candidate) =>
-        candidate.textContent?.trim() === 'Cancel'
-      )
-      button?.click()
-    })()`)
+    await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
     await waitFor(
-      async () => !(await bodyText()).includes('Add feed'),
-      'cancel did not return to the reader'
+      async () => !(await bodyText()).includes('Settings'),
+      'back did not return to the reader'
     )
-    console.log('   the + button enabled, opened the add screen and prefilled the URL')
+    console.log('   the + button opened Settings > Feeds and prefilled the URL')
 
     await evaluate(
-      `document.querySelector('button[aria-label="Add feed from this page"]')?.click()`
+      `document.querySelector('button[aria-label="Add feed"]')?.click()`
     )
     await waitFor(
-      async () => (await bodyText()).includes('Add feed'),
-      'add screen did not reopen'
+      async () => (await bodyText()).includes('Settings'),
+      'Settings did not reopen'
     )
     await evaluate(`(() => {
       const button = [...document.querySelectorAll('button')].find((candidate) =>
@@ -484,14 +481,14 @@ async function main() {
       async () =>
         (await bodyText()).includes('Settings') &&
         (await bodyText()).includes('reddit-like/news.rss'),
-      'adding the detected feed did not open Settings with the feed'
+      'adding the detected feed did not refresh the feed list'
     )
     await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
     await waitFor(
       async () => !(await bodyText()).includes('Settings'),
       'did not return to the reader after adding'
     )
-    console.log('   submitting the detected-feed form opened Settings with the feed')
+    console.log('   submitting the form added the feed and stayed in Settings')
 
     await popup.send('Page.reload', {ignoreCache: true})
     const activeDiscovery = await waitFor(async () => {
@@ -504,42 +501,53 @@ async function main() {
     }, 'subscribed feed was still reported as unsubscribed')
     assert(activeDiscovery.data.feeds.length > 0, 'no feeds were detected on reload')
     await waitFor(
-      async () => (await addButtonState())?.disabled === true,
-      'add-feed button stayed enabled for a subscribed-only page'
+      async () => (await addButtonState())?.disabled === false,
+      'add-feed button should stay available for manual adds'
+    )
+    await evaluate(
+      `document.querySelector('button[aria-label="Add feed"]')?.click()`
+    )
+    await waitFor(
+      async () => (await bodyText()).includes('Settings'),
+      'manual add did not open Settings > Feeds'
     )
     assert(
-      !(await bodyText()).includes('Add feed'),
-      'subscribed-only page still opened the add screen'
+      (await evaluate(
+        `document.querySelector('input[aria-label="Feed URL"]')?.value ?? null`
+      )) === '',
+      'subscribed-only page should open an empty add form'
+    )
+    await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
+    await waitFor(
+      async () => !(await bodyText()).includes('Settings'),
+      'did not return to the reader from the empty add form'
     )
 
     await openPage('/multi.html')
     await popup.send('Page.reload', {ignoreCache: true})
     await waitFor(
       async () => (await addButtonState())?.disabled === false,
-      'multiple-feed page did not enable the add button'
+      'multiple-feed page did not keep the add button enabled'
     )
     await evaluate(
-      `document.querySelector('button[aria-label="Add feed from this page"]')?.click()`
+      `document.querySelector('button[aria-label="Add feed"]')?.click()`
     )
     await waitFor(
-      async () => (await bodyText()).includes('Add feed'),
-      'multiple-feed page did not open the add screen'
+      async () => (await bodyText()).includes('Settings'),
+      'multiple-feed page did not open Settings > Feeds'
     )
-    assert(
-      (await evaluate(
-        `document.querySelectorAll('input[name="detected-feed"]').length`
-      )) === 2,
-      'multiple detected feeds did not render a picker'
+    const multiUrl = await evaluate(
+      `document.querySelector('input[aria-label="Feed URL"]')?.value ?? ''`
     )
-    await evaluate(`(() => {
-      const button = [...document.querySelectorAll('button')].find((candidate) =>
-        candidate.textContent?.trim() === 'Cancel'
-      )
-      button?.click()
-    })()`)
+    assert(multiUrl.length > 0, 'multiple-feed page did not prefill a URL')
+    await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
+    await waitFor(
+      async () => !(await bodyText()).includes('Settings'),
+      'did not return to the reader from the multiple-feed add form'
+    )
     const multiTabId = await pageTabId('/multi.html')
     if (multiTabId) await evaluate(`chrome.tabs.remove(${multiTabId})`)
-    console.log('   subscribed-only pages disable the button; multiple feeds show a picker')
+    console.log('   subscribed-only pages open an empty form; multiple feeds prefill a URL')
 
     console.log('8. add a cookie-protected feed through the page context')
     const cookie = await discoverPage('/cookie-page', '/cookie-page.rss')

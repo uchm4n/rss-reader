@@ -1,4 +1,5 @@
 import {type AnyFeed, parseFeed} from 'feedsmith'
+import type {ContentFormat} from '../model/post'
 import {excerptText, plainText} from './html'
 
 export interface ParsedPost {
@@ -7,6 +8,7 @@ export interface ParsedPost {
     link: string | null
     publishedAt: number
     contentHtml: string | null
+    contentType?: ContentFormat
     excerpt: string
     imageUrl: string | null
     author: string | null
@@ -47,6 +49,23 @@ function alternateLink(links: Link[] | undefined): string | null {
     )
 }
 
+function atomContentType(type: string | undefined): ContentFormat | undefined {
+    if (!type) return undefined
+    const mediaType = type.toLowerCase().split(';', 1)[0].trim()
+
+    if (
+        mediaType === 'html' ||
+        mediaType === 'text/html' ||
+        mediaType === 'xhtml' ||
+        mediaType === 'application/xhtml+xml'
+    ) {
+        return 'html'
+    }
+    if (mediaType === 'markdown' || mediaType === 'text/markdown') return 'markdown'
+    if (mediaType === 'text' || mediaType === 'text/plain') return 'text'
+    return undefined
+}
+
 function imageFromItem(item: Media): string | null {
     const enclosure = item.enclosures?.find((entry) => entry.type?.startsWith('image/'))
     const thumbnail = item.media?.thumbnails?.[0]
@@ -64,11 +83,17 @@ function parseRss(feed: Extract<AnyFeed, { format: 'rss' }>['feed']): ParsedFeed
         description: feed.description ?? feed.atom?.subtitle?.value ?? null,
         imageUrl: feed.image?.url ?? feed.atom?.icon ?? null,
         items: (feed.items ?? []).map((item) => {
+            const encoded = item.content?.encoded
+            const description = item.description
             const contentHtml =
-                item.content?.encoded ??
-                item.description ??
+                encoded ??
+                description ??
                 item.atom?.content?.value ??
                 null
+            const contentType: ContentFormat | undefined =
+                encoded != null || description != null
+                    ? 'html'
+                    : atomContentType(item.atom?.content?.type)
             const excerptSource = item.description ?? item.atom?.summary?.value ?? contentHtml
 
             return {
@@ -79,6 +104,7 @@ function parseRss(feed: Extract<AnyFeed, { format: 'rss' }>['feed']): ParsedFeed
                     item.pubDate ?? item.dc?.dates?.[0] ?? item.atom?.published ?? item.atom?.updated
                 ),
                 contentHtml,
+                contentType,
                 excerpt: excerptSource ? excerptText(excerptSource) : '',
                 imageUrl: imageFromItem(item),
                 author:
@@ -98,8 +124,13 @@ function parseAtom(feed: Extract<AnyFeed, { format: 'atom' }>['feed']): ParsedFe
         description: feed.subtitle?.value ?? null,
         imageUrl: feed.icon ?? feed.logo ?? null,
         items: (feed.entries ?? []).map((entry) => {
-            const contentHtml = entry.content?.value ?? entry.summary?.value ?? null
-            const excerptSource = entry.summary?.value ?? contentHtml
+            const content = entry.content
+            const summary = entry.summary
+            const contentHtml = content?.value ?? summary?.value ?? null
+            const contentType = content?.value != null
+                ? atomContentType(content.type)
+                : atomContentType(summary?.type)
+            const excerptSource = summary?.value ?? contentHtml
 
             return {
                 guid: entry.id || null,
@@ -107,6 +138,7 @@ function parseAtom(feed: Extract<AnyFeed, { format: 'atom' }>['feed']): ParsedFe
                 link: alternateLink(entry.links),
                 publishedAt: timestamp(entry.published ?? entry.updated),
                 contentHtml,
+                contentType,
                 excerpt: excerptSource ? excerptText(excerptSource) : '',
                 imageUrl: imageFromItem(entry),
                 author: entry.authors?.[0]?.name ?? null
@@ -123,6 +155,12 @@ function parseJson(feed: Extract<AnyFeed, { format: 'json' }>['feed']): ParsedFe
         imageUrl: feed.icon ?? feed.favicon ?? null,
         items: (feed.items ?? []).map((item) => {
             const contentHtml = item.content_html ?? item.content_text ?? null
+            const contentType: ContentFormat | undefined =
+                item.content_html != null
+                    ? 'html'
+                    : item.content_text != null
+                        ? 'text'
+                        : undefined
             const excerptSource = item.summary ?? item.content_text ?? contentHtml
 
             return {
@@ -131,6 +169,7 @@ function parseJson(feed: Extract<AnyFeed, { format: 'json' }>['feed']): ParsedFe
                 link: item.url ?? item.external_url ?? null,
                 publishedAt: timestamp(item.date_published ?? item.date_modified),
                 contentHtml,
+                contentType,
                 excerpt: excerptSource ? excerptText(excerptSource) : '',
                 imageUrl: item.image ?? item.banner_image ?? null,
                 author: item.authors?.[0]?.name ?? null
@@ -146,11 +185,17 @@ function parseRdf(feed: Extract<AnyFeed, { format: 'rdf' }>['feed']): ParsedFeed
         description: feed.description ?? feed.atom?.subtitle?.value ?? null,
         imageUrl: feed.image?.url ?? feed.atom?.icon ?? null,
         items: (feed.items ?? []).map((item) => {
+            const encoded = item.content?.encoded
+            const description = item.description
             const contentHtml =
-                item.content?.encoded ??
-                item.description ??
+                encoded ??
+                description ??
                 item.atom?.content?.value ??
                 null
+            const contentType: ContentFormat | undefined =
+                encoded != null || description != null
+                    ? 'html'
+                    : atomContentType(item.atom?.content?.type)
             const excerptSource = item.description ?? item.atom?.summary?.value ?? contentHtml
 
             return {
@@ -161,6 +206,7 @@ function parseRdf(feed: Extract<AnyFeed, { format: 'rdf' }>['feed']): ParsedFeed
                     item.dc?.dates?.[0] ?? item.atom?.published ?? item.atom?.updated
                 ),
                 contentHtml,
+                contentType,
                 excerpt: excerptSource ? excerptText(excerptSource) : '',
                 imageUrl: imageFromItem(item),
                 author: item.dc?.creators?.[0] ?? item.atom?.authors?.[0]?.name ?? null

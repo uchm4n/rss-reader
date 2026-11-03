@@ -22,7 +22,13 @@ function message(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback
 }
 
-export function FeedsSettings() {
+export function FeedsSettings({
+    initialUrl = '',
+    onFeedAdded
+}: {
+    initialUrl?: string
+    onFeedAdded?: () => void
+} = {}) {
     const feeds = useFeeds()
     const folders = useFolders()
     const [editingId, setEditingId] = useState<string | null>(null)
@@ -77,8 +83,11 @@ export function FeedsSettings() {
 
     return (
         <div className="space-y-4">
-            <AddFeedForm folders={folders ?? []} onAdded={() => {
-            }}/>
+            <AddFeedForm
+                folders={folders ?? []}
+                initialUrl={initialUrl}
+                onAdded={() => onFeedAdded?.()}
+            />
 
             {feeds === undefined ? null : feeds.length === 0 ? (
                 <p className="text-xs text-muted-foreground">

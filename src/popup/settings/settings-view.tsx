@@ -11,10 +11,14 @@ import {StorageSettings} from './storage-settings'
 
 export function SettingsView({
     onBack,
-    initialSection = 'general'
+    initialSection = 'general',
+    initialUrl = '',
+    onFeedAdded
 }: {
     onBack: () => void
     initialSection?: SettingsSection
+    initialUrl?: string
+    onFeedAdded?: () => void
 }) {
     const [section, setSection] = useState<SettingsSection>(initialSection)
 
@@ -32,7 +36,9 @@ export function SettingsView({
                 <ScrollArea className="min-h-0 min-w-0 flex-1">
                     <div className="p-4">
                         {section === 'general' ? <GeneralSettings/> : null}
-                        {section === 'feeds' ? <FeedsSettings/> : null}
+                        {section === 'feeds' ? (
+                            <FeedsSettings initialUrl={initialUrl} onFeedAdded={onFeedAdded}/>
+                        ) : null}
                         {section === 'folders' ? <FoldersSettings/> : null}
                         {section === 'opml' ? <OpmlSettings/> : null}
                         {section === 'storage' ? <StorageSettings/> : null}

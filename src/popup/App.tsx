@@ -4,7 +4,6 @@ import {Toaster} from '@/components/ui/sonner'
 import {TooltipProvider} from '@/components/ui/tooltip'
 import type {DiscoveryResult} from '@/background/discovery'
 import {type Selection, selectionTitle} from '@/shared/model/selection'
-import {AddDetectedFeedView} from './components/add-detected-feed-view'
 import {AppShell} from './components/app-shell'
 import {PostList} from './components/posts/post-list'
 import {PostReader} from './components/posts/post-reader'
@@ -17,6 +16,7 @@ import {useSettings} from './hooks/use-settings'
 import {useSyncActionBadge} from './hooks/use-action-badge'
 import {useTheme} from './hooks/use-theme'
 import {sendCommand} from './lib/commands'
+import {firstAddableFeedUrl} from './lib/discovery'
 import {openExternal} from './platform'
 import type {SettingsSection} from './settings/settings-nav'
 import {SettingsView} from './settings/settings-view'
@@ -32,8 +32,8 @@ export default function App() {
     const [openPostId, setOpenPostId] = useState<string | null>(null)
     const [settingsOpen, setSettingsOpen] = useState(false)
     const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
+    const [settingsInitialUrl, setSettingsInitialUrl] = useState('')
     const [discovery, setDiscovery] = useState<DiscoveryResult | null>(null)
-    const [addFeedOpen, setAddFeedOpen] = useState(false)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const previousSelection = useRef<Selection>({kind: 'all'})
     const appliedStartView = useRef(false)
@@ -89,9 +89,22 @@ export default function App() {
         setSelection(previousSelection.current)
     }
 
-    const openSettings = (section: SettingsSection = 'general') => {
+    const openSettings = (section: SettingsSection = 'general', initialUrl = '') => {
         setSettingsSection(section)
+        setSettingsInitialUrl(initialUrl)
         setSettingsOpen(true)
+    }
+
+    const handleAddFeed = async () => {
+        let result = discovery
+        if (!result) {
+            try {
+                result = await sendCommand<DiscoveryResult>({type: 'discovery:active'})
+            } catch {
+                result = null
+            }
+        }
+        openSettings('feeds', firstAddableFeedUrl(result))
     }
 
     const refresh = async () => {
@@ -110,6 +123,8 @@ export default function App() {
             <TooltipProvider>
                 <SettingsView
                     initialSection={settingsSection}
+                    initialUrl={settingsInitialUrl}
+                    onFeedAdded={() => setSettingsInitialUrl('')}
                     onBack={() => setSettingsOpen(false)}
                 />
                 <Toaster position="bottom-right"/>
@@ -124,28 +139,6 @@ export default function App() {
         discovery.tabId !== null &&
         unsubscribedFeeds.length > 0
 
-    if (
-        addFeedOpen &&
-        discovery !== null &&
-        discovery.tabId !== null &&
-        unsubscribedFeeds.length
-    ) {
-        return (
-            <TooltipProvider>
-                <AddDetectedFeedView
-                    feeds={unsubscribedFeeds}
-                    tabId={discovery.tabId}
-                    onAdded={() => {
-                        setAddFeedOpen(false)
-                        openSettings('feeds')
-                    }}
-                    onCancel={() => setAddFeedOpen(false)}
-                />
-                <Toaster position="bottom-right"/>
-            </TooltipProvider>
-        )
-    }
-
     return (
         <TooltipProvider>
             <AppShell
@@ -156,7 +149,7 @@ export default function App() {
                         onSearchChange={setSearchValue}
                         onSearchSubmit={handleSearchSubmit}
                         onClearSearch={handleClearSearch}
-                        onAddFeed={() => setAddFeedOpen(true)}
+                        onAddFeed={() => void handleAddFeed()}
                         canAddFeed={canAddFeed}
                         isCheckingFeed={discovery === null}
                         onRefresh={() => void refresh()}
@@ -176,7 +169,7 @@ export default function App() {
                     <PostList selection={selection} onOpenPost={setOpenPostId}/>
                 </div>
                 {openPostId ? (
-                    <div className="h-full">
+                    <div className="h-full min-w-0">
                         <PostReader
                             postId={openPostId}
                             onBack={() => setOpenPostId(null)}

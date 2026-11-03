@@ -71,6 +71,7 @@ export async function ingestFeed(
                 fetchedAt: previous?.fetchedAt ?? now,
                 excerpt: item.excerpt,
                 contentHtml: item.contentHtml,
+                contentType: item.contentType,
                 imageUrl: item.imageUrl,
                 author: item.author,
                 searchText: `${item.title} ${item.excerpt} ${item.link ?? ''}`.toLowerCase()

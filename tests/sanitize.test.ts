@@ -16,4 +16,14 @@ describe('sanitizePostHtml', () => {
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noreferrer noopener"')
   })
+
+  it('removes document-level tags that can change the popup', () => {
+    const html = sanitizePostHtml(
+      '<p>Hi</p><style>body{display:none}</style><link rel="stylesheet" href="x"><meta http-equiv="refresh" content="0"><base href="https://evil.example/">'
+    )
+    expect(html).not.toContain('<style')
+    expect(html).not.toContain('<link')
+    expect(html).not.toContain('<meta')
+    expect(html).not.toContain('<base')
+  })
 })

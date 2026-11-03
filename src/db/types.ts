@@ -1,3 +1,5 @@
+import type {ContentFormat} from '../shared/model/post'
+
 export interface Feed {
     id: string
     url: string
@@ -40,6 +42,7 @@ export interface Post {
     fetchedAt: number
     excerpt: string
     contentHtml: string | null
+    contentType?: ContentFormat
     imageUrl: string | null
     author: string | null
     status: boolean

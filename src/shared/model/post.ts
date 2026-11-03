@@ -2,6 +2,8 @@ import {plainText} from '../parser/html'
 
 export {plainText}
 
+export type ContentFormat = 'html' | 'text' | 'markdown'
+
 export function formatRelativeTime(date: Date, now = Date.now()): string {
     const elapsed = Math.max(0, now - date.getTime())
     const minutes = Math.floor(elapsed / 60_000)

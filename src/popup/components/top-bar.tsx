@@ -69,8 +69,7 @@ export function TopBar({
                             variant="ghost"
                             size="icon-sm"
                             onClick={onAddFeed}
-                            disabled={!canAddFeed}
-                            aria-label="Add feed from this page"
+                            aria-label="Add feed"
                         >
                             <Plus className="size-4"/>
                         </Button>
@@ -78,10 +77,10 @@ export function TopBar({
                 </TooltipTrigger>
                 <TooltipContent>
                     {isCheckingFeed
-                        ? 'Checking this page for feeds…'
+                        ? 'Checking this page for feeds… add one manually'
                         : canAddFeed
                           ? 'Add feed from this page'
-                          : 'No unsubscribed feed found on this page'}
+                          : 'Add a feed'}
                 </TooltipContent>
             </Tooltip>
 

@@ -13,6 +13,7 @@
     "dompurify": "^3.4.17",
     "feedsmith": "^3.0.1",
     "lucide-react": "0.487.0",
+    "marked": "^18.1.3",
     "radix-ui": "^1.8.1",
     "react": "18.1.0",
     "react-dom": "18.1.0",

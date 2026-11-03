@@ -33,6 +33,17 @@ describe('ingestFeed', () => {
     expect((await db.feeds.get('feed-1'))?.unreadCount).toBe(0)
   })
 
+  it('stores the parsed content type', async () => {
+    const feed = await seedFeed()
+    const parsed = parsedFeed([
+      parsedPost({guid: 'g1', contentType: 'markdown', contentHtml: '# Hello'})
+    ])
+
+    await ingestFeed(feed, parsed, {retention: 200, firstFetch: true, now: 1_000})
+
+    expect((await db.posts.get('feed-1:g1'))?.contentType).toBe('markdown')
+  })
+
   it('does not duplicate posts and preserves read and starred state', async () => {
     const feed = await seedFeed()
     const parsed = parsedFeed([

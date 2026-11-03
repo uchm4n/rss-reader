@@ -7,8 +7,8 @@ import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../../hooks/use-feeds'
 import {usePost} from '../../hooks/use-post'
 import {setPostStatus, togglePostStar} from '../../hooks/use-post-actions'
-import {sanitizePostHtml} from '../../lib/sanitize'
 import {FeedIcon} from './feed-icon'
+import {PostBody} from './post-body'
 
 interface PostReaderProps {
     postId: string
@@ -119,7 +119,7 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
     }
 
     return (
-        <div className="flex h-full flex-col">
+        <div className="flex h-full min-w-0 flex-col">
             <ReaderHeader
                 post={post}
                 feed={feed}
@@ -129,10 +129,14 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
                 onMarkRead={() => void markRead()}
                 onMarkUnread={() => void markUnread()}
             />
-            <ScrollArea className="min-h-0 flex-1">
-                <article className="mx-auto max-w-2xl px-6 py-5">
-                    <h1 className="text-xl font-semibold leading-tight">{post.title}</h1>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <ScrollArea
+                className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!w-full">
+                <article className="mx-auto w-full min-w-0 max-w-2xl px-6 py-5">
+                    <h1 className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">
+                        {post.title}
+                    </h1>
+                    <div
+                        className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
                         <span>{formatRelativeTime(new Date(post.publishedAt))}</span>
                         {feed?.title ? (
                             <>
@@ -143,13 +147,15 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
                     </div>
 
                     {post.contentHtml ? (
-                        <div
-                            className="post-content mt-5"
-                            dangerouslySetInnerHTML={{__html: sanitizePostHtml(post.contentHtml)}}
-                        />
+                        <div className="mt-5 min-w-0">
+                            <PostBody
+                                content={post.contentHtml}
+                                contentType={post.contentType}
+                            />
+                        </div>
                     ) : (
                         <div className="mt-5 space-y-4">
-                            <p className="text-sm leading-6 text-muted-foreground">
+                            <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
                                 {post.excerpt || 'No content available for this post.'}
                             </p>
                             {post.link ? (
