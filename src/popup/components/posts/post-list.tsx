@@ -1,12 +1,17 @@
 import {useMemo} from 'react'
 import {Inbox, Star} from 'lucide-react'
+import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
 import type {Feed} from '@/db/types'
 import type {Selection} from '@/shared/model/selection'
 import {useFeeds} from '../../hooks/use-feeds'
 import {usePosts} from '../../hooks/use-posts'
 import {useSettings} from '../../hooks/use-settings'
-import {setPostStatus, togglePostStar} from '../../hooks/use-post-actions'
+import {
+    markPostsRead,
+    setPostStatus,
+    togglePostStar
+} from '../../hooks/use-post-actions'
 import {EmptyState} from '../empty-state'
 import {LoadingRows} from '../loading-rows'
 import {PostRow} from './post-row'
@@ -44,6 +49,7 @@ export function PostList({selection, onOpenPost}: PostListProps) {
         () => new Map((feeds ?? []).map((feed) => [feed.id, feed])),
         [feeds]
     )
+    const unreadIds = posts?.filter((post) => !post.status).map((post) => post.id) ?? []
 
     if (!posts) return <LoadingRows rows={8}/>
 
@@ -64,10 +70,18 @@ export function PostList({selection, onOpenPost}: PostListProps) {
         <div className="flex h-full flex-col">
             <div
                 className="flex h-9 shrink-0 items-center justify-between border-b px-4 text-[11px] text-muted-foreground">
-        <span>
-          {posts.length} {posts.length === 1 ? 'post' : 'posts'}
-        </span>
-                <span>Newest first</span>
+                <span>
+                    {posts.length} {posts.length === 1 ? 'post' : 'posts'}
+                </span>
+                {/* ponytail: marks the loaded view (up to 200); add a selection-wide query if older unread posts matter. */}
+                <Button
+                    variant="ghost"
+                    size="xs"
+                    disabled={!unreadIds.length}
+                    onClick={() => void markPostsRead(unreadIds)}
+                >
+                    Mark all as read
+                </Button>
             </div>
             <ScrollArea className="min-h-0 flex-1">
                 <div className="divide-y">

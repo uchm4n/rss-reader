@@ -349,6 +349,40 @@ async function main() {
     )
     console.log('   read/star persisted and Starred view shows the item')
 
+    console.log('3b. mark all as read')
+    await evaluate(`(() => {
+      const view = [...document.querySelectorAll('button')].find((candidate) =>
+        candidate.textContent?.includes('All posts')
+      )
+      view?.click()
+    })()`)
+    await fetch(`${fixture.url}/add-item`)
+    await command({type: 'feed:refresh-all'})
+    await waitFor(async () => {
+      const posts = await dbAll('posts')
+      return posts.filter((post) => !post.status).length === 1 && (await badge()) === '1'
+    }, 'new unread post did not arrive')
+    await waitFor(
+      () => evaluate(`(() => {
+        const button = [...document.querySelectorAll('button')].find((candidate) =>
+          candidate.textContent?.trim() === 'Mark all as read'
+        )
+        return Boolean(button && !button.disabled)
+      })()`),
+      'mark-all button was not enabled'
+    )
+    await evaluate(`(() => {
+      const button = [...document.querySelectorAll('button')].find((candidate) =>
+        candidate.textContent?.trim() === 'Mark all as read'
+      )
+      button?.click()
+    })()`)
+    await waitFor(async () => {
+      const posts = await dbAll('posts')
+      return posts.every((post) => post.status) && (await badge()) === ''
+    }, 'mark all as read did not clear unread posts and the badge')
+    console.log('   mark all as read cleared the list and the badge')
+
     console.log('4. import OPML')
     const opml = await (await fetch(`${fixture.url}/opml.xml`)).text()
     const imported = await command({type: 'opml:import', xml: opml})

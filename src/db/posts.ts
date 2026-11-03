@@ -1,5 +1,6 @@
 import Dexie from 'dexie'
 import {db} from './db'
+import type {Post} from './types'
 
 async function unreadCountForFeed(feedId: string): Promise<number> {
     return db.posts
@@ -28,6 +29,33 @@ export async function setPostStatus(
         await db.feeds.update(post.feedId, {
             unreadCount: await unreadCountForFeed(post.feedId)
         })
+    })
+}
+
+export async function markPostsRead(
+    postIds: string[],
+    now = Date.now()
+): Promise<void> {
+    const unique = [...new Set(postIds)]
+    if (!unique.length) return
+
+    await db.transaction('rw', db.feeds, db.posts, async () => {
+        const posts = await db.posts.bulkGet(unique)
+        const unread = posts.filter(
+            (post): post is Post => post !== undefined && !post.status
+        )
+        if (!unread.length) return
+
+        await db.posts
+            .where('id')
+            .anyOf(unread.map((post) => post.id))
+            .modify({status: true, statusKey: 1, readAt: now})
+
+        for (const feedId of new Set(unread.map((post) => post.feedId))) {
+            await db.feeds.update(feedId, {
+                unreadCount: await unreadCountForFeed(feedId)
+            })
+        }
     })
 }
 
