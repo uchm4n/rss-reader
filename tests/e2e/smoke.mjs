@@ -636,6 +636,36 @@ async function main() {
       )
     }, 'settings did not persist')
 
+    console.log('9b. inspect the Storage table')
+    await evaluate(`(() => {
+      const button = [...document.querySelectorAll('button')].find((candidate) =>
+        candidate.textContent?.trim() === 'Storage'
+      )
+      button?.click()
+    })()`)
+    await waitFor(
+      async () =>
+        (await bodyText()).includes('IndexedDB') &&
+        (await bodyText()).includes('Statistics') &&
+        (await bodyText()).includes('Clear all data'),
+      'Storage section did not render'
+    )
+    await waitFor(
+      async () =>
+        (await evaluate(`document.querySelectorAll('table tbody tr').length`)) === 4,
+      'Storage table did not show all four Dexie stores'
+    )
+    const storeLabels = await evaluate(
+      `[...document.querySelectorAll('table tbody tr')].map((row) => row.textContent ?? '')`
+    )
+    assert(
+      ['Feeds', 'Folders', 'Posts', 'Settings'].every((label) =>
+        storeLabels.some((row) => row.includes(label))
+      ),
+      'Storage table is missing a store'
+    )
+    console.log('   storage table and statistics rendered')
+
     await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
     await waitFor(
       () => evaluate(`Boolean(document.querySelector('select[aria-label="Theme"]')) === false`),

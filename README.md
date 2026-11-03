@@ -40,6 +40,7 @@ Only feed URLs, article links, images referenced by feeds and a bounded set of s
 - `status: true` means read. `starred` is independent.
 - A single dynamic alarm refreshes due feeds in small batches. The minimum interval is 30 seconds; feeds can override the global interval. The global dropdown labels the 15-minute option as the default.
 - Search is a local filter over stored posts, capped at 200 results.
+- Settings → Storage shows a read-only summary of the Dexie stores, record counts and the browser storage estimate; Clear all data removes everything.
 
 ## Feed discovery
 

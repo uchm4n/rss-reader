@@ -1,26 +1,34 @@
 import {useEffect, useState} from 'react'
+import {useLiveQuery} from 'dexie-react-hooks'
 import {toast} from 'sonner'
 import {Button} from '@/components/ui/button'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
+} from '@/components/ui/table'
 import {sendCommand} from '../lib/commands'
+import {formatBytes, loadStoreSummary, usagePercent} from '../lib/storage'
 
 interface StorageEstimate {
     usage: number
     quota: number
 }
 
-function formatBytes(bytes: number): string {
-    if (!bytes) return '0 B'
-
-    const units = ['B', 'KB', 'MB', 'GB']
-    const index = Math.min(
-        Math.floor(Math.log(bytes) / Math.log(1024)),
-        units.length - 1
+function Stat({label, value}: { label: string; value: string }) {
+    return (
+        <div className="rounded-md border p-2">
+            <dt className="text-[11px] text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 text-sm font-semibold tabular-nums">{value}</dd>
+        </div>
     )
-    const value = bytes / 1024 ** index
-    return `${index === 0 ? value : value.toFixed(1)} ${units[index]}`
 }
 
 export function StorageSettings() {
+    const stores = useLiveQuery(loadStoreSummary, [])
     const [estimate, setEstimate] = useState<StorageEstimate | null>(null)
     const [busy, setBusy] = useState(false)
 
@@ -58,18 +66,76 @@ export function StorageSettings() {
         }
     }
 
+    const totalRecords = stores?.reduce((total, store) => total + store.count, 0) ?? 0
+    const used = estimate ? usagePercent(estimate.usage, estimate.quota) : 0
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-5">
             <section className="space-y-2">
-                <h2 className="text-sm font-semibold">Storage</h2>
-                <p className="text-xs text-muted-foreground">
-                    {estimate
-                        ? `${formatBytes(estimate.usage)} used of ${formatBytes(estimate.quota)} available.`
-                        : 'Storage estimate is unavailable in this browser.'}
-                </p>
+                <h2 className="text-sm font-semibold">IndexedDB</h2>
+                <div className="overflow-hidden rounded-md border">
+                    <Table className="text-xs">
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead className="h-8 px-3 text-[11px]">Store</TableHead>
+                                <TableHead className="h-8 px-3 text-right text-[11px]">
+                                    Records
+                                </TableHead>
+                                <TableHead className="h-8 px-3 text-[11px]">
+                                    Contents
+                                </TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {stores ? (
+                                stores.map((store) => (
+                                    <TableRow key={store.name}>
+                                        <TableCell className="px-3 py-1.5 font-medium">
+                                            {store.label}
+                                        </TableCell>
+                                        <TableCell className="px-3 py-1.5 text-right tabular-nums">
+                                            {store.count.toLocaleString()}
+                                        </TableCell>
+                                        <TableCell className="px-3 py-1.5 text-muted-foreground">
+                                            {store.description}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={3}
+                                        className="px-3 py-2 text-muted-foreground"
+                                    >
+                                        Loading…
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </section>
 
             <section className="space-y-2">
+                <h2 className="text-sm font-semibold">Statistics</h2>
+                <dl className="grid grid-cols-2 gap-2">
+                    <Stat label="Total records" value={totalRecords.toLocaleString()}/>
+                    <Stat
+                        label="Storage used"
+                        value={estimate ? formatBytes(estimate.usage) : 'Unavailable'}
+                    />
+                    <Stat
+                        label="Available quota"
+                        value={estimate ? formatBytes(estimate.quota) : 'Unavailable'}
+                    />
+                    <Stat
+                        label="Used"
+                        value={estimate ? `${used.toFixed(1)}%` : 'Unavailable'}
+                    />
+                </dl>
+            </section>
+
+            <section className="space-y-2 border-t pt-4">
                 <h2 className="text-sm font-semibold">Clear data</h2>
                 <p className="text-xs text-muted-foreground">
                     Remove all local feeds, posts, folders and settings. This cannot be undone.
