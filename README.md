@@ -5,25 +5,6 @@ There is no account, hosted API, sync, analytics or remote push.
 
 ## Architecture
 
-```text
-┌─────────────────────────────────────────────┐
-│ Popup (React + shadcn + useLiveQuery)       │
-│  reader, feed tree, search, settings        │
-└───────────────┬─────────────────────────────┘
-                │ Dexie reads/writes
-                │ chrome.runtime.sendMessage
-┌───────────────▼─────────────────────────────┐
-│ Dexie / IndexedDB (`rss-reader`)            │
-│  feeds, folders, posts, settings            │
-└───────────────▲─────────────────────────────┘
-                │ Dexie writes
-┌───────────────┴─────────────────────────────┐
-│  service worker (TypeScript)                │
-│  alarms, fetch, parse, retention, badge,    │
-│  notifications, command router              │
-└─────────────────────────────────────────────┘
-```
-
 - `src/popup` renders the reader and settings. It reads with `useLiveQuery` and writes read/star/settings changes directly.
 - `src/background` owns fetching, parsing, retention, scheduling, notifications, the toolbar badge and feed/folder/OPML commands.
 - `src/db` holds the Dexie schema and post/settings repositories.
