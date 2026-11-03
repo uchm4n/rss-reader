@@ -143,15 +143,6 @@ export async function getActiveDiscovery(
     return getDiscoveryForTab(tab.id, options)
 }
 
-export async function hasUnsubscribedForTab(
-    tabId: number,
-    options: {force?: boolean} = {}
-): Promise<boolean> {
-    const result = await detectTab(tabId, options)
-    const feeds = await withSubscribed(result.feeds)
-    return feeds.some((feed) => !feed.subscribed)
-}
-
 export function clearDiscovery(tabId: number): void {
     cache.delete(tabId)
     inflight.delete(tabId)

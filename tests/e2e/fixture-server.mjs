@@ -248,6 +248,7 @@ export async function startFixtureServer(port = 0) {
         send(response, 200, 'application/rss+xml', rssDocument(probeItems))
         return
       case '/reddit-like/news':
+      case '/reddit-like/news/':
         send(
           response,
           200,

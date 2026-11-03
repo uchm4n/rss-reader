@@ -1,4 +1,4 @@
-import {RefreshCw, Search, Settings, X} from 'lucide-react'
+import {Plus, RefreshCw, Search, Settings, X} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import {Separator} from '@/components/ui/separator'
@@ -10,6 +10,9 @@ interface TopBarProps {
     onSearchChange: (value: string) => void
     onSearchSubmit: () => void
     onClearSearch: () => void
+    onAddFeed: () => void
+    canAddFeed: boolean
+    isCheckingFeed: boolean
     onRefresh: () => void
     onOpenSettings: () => void
     isRefreshing?: boolean
@@ -21,6 +24,9 @@ export function TopBar({
                            onSearchChange,
                            onSearchSubmit,
                            onClearSearch,
+                           onAddFeed,
+                           canAddFeed,
+                           isCheckingFeed,
                            onRefresh,
                            onOpenSettings,
                            isRefreshing
@@ -55,6 +61,29 @@ export function TopBar({
                     </button>
                 ) : null}
             </div>
+
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className="inline-flex">
+                        <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            onClick={onAddFeed}
+                            disabled={!canAddFeed}
+                            aria-label="Add feed from this page"
+                        >
+                            <Plus className="size-4"/>
+                        </Button>
+                    </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                    {isCheckingFeed
+                        ? 'Checking this page for feeds…'
+                        : canAddFeed
+                          ? 'Add feed from this page'
+                          : 'No unsubscribed feed found on this page'}
+                </TooltipContent>
+            </Tooltip>
 
             <Tooltip>
                 <TooltipTrigger asChild>

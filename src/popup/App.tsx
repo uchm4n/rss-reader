@@ -2,7 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {toast} from 'sonner'
 import {Toaster} from '@/components/ui/sonner'
 import {TooltipProvider} from '@/components/ui/tooltip'
-import type {DiscoveryFeed, DiscoveryResult} from '@/background/discovery'
+import type {DiscoveryResult} from '@/background/discovery'
 import {type Selection, selectionTitle} from '@/shared/model/selection'
 import {AddDetectedFeedView} from './components/add-detected-feed-view'
 import {AppShell} from './components/app-shell'
@@ -32,8 +32,8 @@ export default function App() {
     const [openPostId, setOpenPostId] = useState<string | null>(null)
     const [settingsOpen, setSettingsOpen] = useState(false)
     const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
-    const [detectedFeeds, setDetectedFeeds] = useState<DiscoveryFeed[] | null>(null)
-    const [detectedTabId, setDetectedTabId] = useState<number | null>(null)
+    const [discovery, setDiscovery] = useState<DiscoveryResult | null>(null)
+    const [addFeedOpen, setAddFeedOpen] = useState(false)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const previousSelection = useRef<Selection>({kind: 'all'})
     const appliedStartView = useRef(false)
@@ -47,14 +47,11 @@ export default function App() {
         void sendCommand<DiscoveryResult>({type: 'discovery:active'})
             .then((result) => {
                 if (cancelled) return
-                const unsubscribed = result.feeds.filter((feed) => !feed.subscribed)
-                if (result.tabId !== null && unsubscribed.length) {
-                    setDetectedTabId(result.tabId)
-                    setDetectedFeeds(unsubscribed)
-                }
+                setDiscovery(result)
             })
             .catch(() => {
-                // Discovery is optional; the reader still works without it.
+                if (cancelled) return
+                setDiscovery({tabId: null, pageUrl: null, feeds: []})
             })
 
         return () => {
@@ -120,21 +117,29 @@ export default function App() {
         )
     }
 
-    if (detectedFeeds && detectedTabId !== null) {
+    const unsubscribedFeeds =
+        discovery?.feeds.filter((feed) => !feed.subscribed) ?? []
+    const canAddFeed =
+        discovery !== null &&
+        discovery.tabId !== null &&
+        unsubscribedFeeds.length > 0
+
+    if (
+        addFeedOpen &&
+        discovery !== null &&
+        discovery.tabId !== null &&
+        unsubscribedFeeds.length
+    ) {
         return (
             <TooltipProvider>
                 <AddDetectedFeedView
-                    feeds={detectedFeeds}
-                    tabId={detectedTabId}
+                    feeds={unsubscribedFeeds}
+                    tabId={discovery.tabId}
                     onAdded={() => {
-                        setDetectedFeeds(null)
-                        setDetectedTabId(null)
+                        setAddFeedOpen(false)
                         openSettings('feeds')
                     }}
-                    onCancel={() => {
-                        setDetectedFeeds(null)
-                        setDetectedTabId(null)
-                    }}
+                    onCancel={() => setAddFeedOpen(false)}
                 />
                 <Toaster position="bottom-right"/>
             </TooltipProvider>
@@ -151,6 +156,9 @@ export default function App() {
                         onSearchChange={setSearchValue}
                         onSearchSubmit={handleSearchSubmit}
                         onClearSearch={handleClearSearch}
+                        onAddFeed={() => setAddFeedOpen(true)}
+                        canAddFeed={canAddFeed}
+                        isCheckingFeed={discovery === null}
                         onRefresh={() => void refresh()}
                         onOpenSettings={() => openSettings()}
                         isRefreshing={isRefreshing}

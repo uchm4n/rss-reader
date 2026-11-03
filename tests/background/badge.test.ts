@@ -1,22 +1,11 @@
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
+import {syncActionBadge} from '../../src/background/badge'
 import {db} from '../../src/db/db'
 import {
     GRAY_ACTION_ICONS,
     UNREAD_ACTION_ICONS
 } from '../../src/shared/model/action-icon'
 import {seedFeed} from '../helpers/db'
-
-const {hasUnsubscribedForTab, feedAddIcon} = vi.hoisted(() => ({
-    hasUnsubscribedForTab: vi.fn(),
-    feedAddIcon: vi.fn()
-}))
-
-vi.mock('../../src/background/discovery', () => ({hasUnsubscribedForTab}))
-vi.mock('../../src/background/feed-add-icon', () => ({feedAddIcon}))
-
-import {syncActionBadge} from '../../src/background/badge'
-
-const imageData = {16: {}, 32: {}, 48: {}, 128: {}}
 
 function mockChromeAction() {
     const action = {
@@ -25,17 +14,9 @@ function mockChromeAction() {
         setBadgeTextColor: vi.fn(),
         setIcon: vi.fn()
     }
-    vi.stubGlobal('chrome', {
-        action,
-        tabs: {query: vi.fn().mockResolvedValue([{id: 1}])}
-    })
+    vi.stubGlobal('chrome', {action})
     return action
 }
-
-beforeEach(() => {
-    hasUnsubscribedForTab.mockResolvedValue(false)
-    feedAddIcon.mockResolvedValue(imageData)
-})
 
 afterEach(async () => {
     vi.unstubAllGlobals()
@@ -51,10 +32,7 @@ describe('syncActionBadge', () => {
         await syncActionBadge()
 
         expect(action.setBadgeText).toHaveBeenCalledWith({text: ''})
-        expect(action.setIcon).toHaveBeenCalledWith({
-            tabId: 1,
-            path: GRAY_ACTION_ICONS
-        })
+        expect(action.setIcon).toHaveBeenCalledWith({path: GRAY_ACTION_ICONS})
     })
 
     it('shows the total unread count with the amber icon', async () => {
@@ -71,58 +49,6 @@ describe('syncActionBadge', () => {
         expect(action.setBadgeText).toHaveBeenCalledWith({text: '5'})
         expect(action.setBadgeBackgroundColor).toHaveBeenCalledWith({color: '#f59e0b'})
         expect(action.setBadgeTextColor).toHaveBeenCalledWith({color: '#ffffff'})
-        expect(action.setIcon).toHaveBeenCalledWith({
-            tabId: 1,
-            path: UNREAD_ACTION_ICONS
-        })
-    })
-
-    it('uses the gray plus icon on a tab with an unsubscribed feed', async () => {
-        hasUnsubscribedForTab.mockResolvedValue(true)
-        await seedFeed({unreadCount: 0})
-        const action = mockChromeAction()
-
-        await syncActionBadge()
-
-        expect(feedAddIcon).toHaveBeenCalledWith('add-gray')
-        expect(action.setIcon).toHaveBeenCalledWith({tabId: 1, imageData})
-    })
-
-    it('uses the amber plus icon when that tab also has unread posts', async () => {
-        hasUnsubscribedForTab.mockResolvedValue(true)
-        await seedFeed({unreadCount: 3})
-        const action = mockChromeAction()
-
-        await syncActionBadge()
-
-        expect(feedAddIcon).toHaveBeenCalledWith('add-amber')
-        expect(action.setIcon).toHaveBeenCalledWith({tabId: 1, imageData})
-    })
-
-    it('falls back to the normal icon when icon composition fails', async () => {
-        hasUnsubscribedForTab.mockResolvedValue(true)
-        feedAddIcon.mockRejectedValueOnce(new Error('canvas failed'))
-        await seedFeed({unreadCount: 0})
-        const action = mockChromeAction()
-
-        await syncActionBadge()
-
-        expect(action.setIcon).toHaveBeenCalledWith({
-            tabId: 1,
-            path: GRAY_ACTION_ICONS
-        })
-    })
-
-    it('sets the global icon when no tab is active', async () => {
-        await seedFeed({unreadCount: 0})
-        const action = mockChromeAction()
-        const chromeMock = globalThis.chrome as unknown as {
-            tabs: {query: ReturnType<typeof vi.fn>}
-        }
-        chromeMock.tabs.query.mockResolvedValue([])
-
-        await syncActionBadge()
-
-        expect(action.setIcon).toHaveBeenCalledWith({path: GRAY_ACTION_ICONS})
+        expect(action.setIcon).toHaveBeenCalledWith({path: UNREAD_ACTION_ICONS})
     })
 })

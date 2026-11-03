@@ -119,6 +119,44 @@ describe('discoverPageFeeds', () => {
         ])
     })
 
+    it('probes /r/news.rss for the real Reddit subreddit URL', async () => {
+        page('https://www.reddit.com/r/news/', '<html><body>News</body></html>')
+        const fetchMock = vi.fn().mockResolvedValue(
+            new Response(
+                '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><title>News</title></feed>',
+                {status: 200, headers: {'content-type': 'application/atom+xml'}}
+            )
+        )
+        vi.stubGlobal('fetch', fetchMock)
+
+        const feeds = await discoverPageFeeds()
+
+        expect(feeds).toMatchObject([
+            {
+                url: 'https://www.reddit.com/r/news.rss',
+                source: 'probe'
+            }
+        ])
+        expect(fetchMock.mock.calls[0][0]).toBe(
+            'https://www.reddit.com/r/news.rss'
+        )
+    })
+
+    it('recognizes the real Reddit .rss URL directly', async () => {
+        page(
+            'https://www.reddit.com/r/news.rss',
+            '<html><body><pre>&lt;feed&gt;&lt;/feed&gt;</pre></body></html>',
+            'text/plain'
+        )
+
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {
+                url: 'https://www.reddit.com/r/news.rss',
+                source: 'page'
+            }
+        ])
+    })
+
     it('probes the Reddit-style .rss URL when no link exists', async () => {
         page('https://www.reddit.com/r/news', '<html><body>News</body></html>')
         const fetchMock = vi.fn().mockResolvedValue(

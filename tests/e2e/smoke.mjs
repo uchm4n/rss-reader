@@ -374,18 +374,45 @@ async function main() {
     console.log('6. detect feeds from page markup and probing')
     const article = await discoverPage('/article.html', '/article.rss')
     const probe = await discoverPage('/probe', '/probe.rss')
-    const redditLike = await discoverPage('/reddit-like/news', '/reddit-like/news.rss')
+    const redditLike = await discoverPage('/reddit-like/news/', '/reddit-like/news.rss')
+    const redditDirect = await discoverPage(
+      '/reddit-like/news.rss',
+      '/reddit-like/news.rss'
+    )
 
     assert(article.feeds.length === 1, 'article link feed was not found')
     assert(probe.feeds.length === 1, 'probe feed was not found')
-    assert(redditLike.feeds.length === 1, 'reddit-like feed was not found')
-    console.log('   link, probe and reddit-like detection passed')
+    assert(redditLike.feeds.length === 1, 'reddit-like page feed was not found')
+    assert(
+      redditDirect.feeds.some((feed) => feed.source === 'page'),
+      'direct reddit-like feed URL was not recognized'
+    )
+    console.log('   link, probe, reddit-like and direct-feed detection passed')
 
-    console.log('7. open the detected-feed screen')
+    const addButtonState = () =>
+      evaluate(
+        `(() => {
+          const button = document.querySelector('button[aria-label="Add feed from this page"]')
+          return button ? {exists: true, disabled: button.disabled} : {exists: false}
+        })()`
+      )
+
+    console.log('7. open the add feed screen from the toolbar button')
     await popup.send('Page.reload', {ignoreCache: true})
     await waitFor(
+      async () => (await addButtonState())?.disabled === false,
+      'add-feed toolbar button did not enable for the detected feed'
+    )
+    assert(
+      !(await bodyText()).includes('Add feed'),
+      'the add screen opened automatically'
+    )
+    await evaluate(
+      `document.querySelector('button[aria-label="Add feed from this page"]')?.click()`
+    )
+    await waitFor(
       async () => (await bodyText()).includes('Add feed'),
-      'detected-feed screen did not open'
+      'add-feed toolbar button did not open the add screen'
     )
     const detectedUrl = await evaluate(
       `document.querySelector('input[aria-label="Feed URL"]')?.value ?? ''`
@@ -404,12 +431,14 @@ async function main() {
       async () => !(await bodyText()).includes('Add feed'),
       'cancel did not return to the reader'
     )
-    console.log('   detected feed was prefilled and cancel returned to the reader')
+    console.log('   the + button enabled, opened the add screen and prefilled the URL')
 
-    await popup.send('Page.reload', {ignoreCache: true})
+    await evaluate(
+      `document.querySelector('button[aria-label="Add feed from this page"]')?.click()`
+    )
     await waitFor(
       async () => (await bodyText()).includes('Add feed'),
-      'detected-feed screen did not reopen'
+      'add screen did not reopen'
     )
     await evaluate(`(() => {
       const button = [...document.querySelectorAll('button')].find((candidate) =>
@@ -431,11 +460,19 @@ async function main() {
     console.log('   submitting the detected-feed form opened Settings with the feed')
 
     await popup.send('Page.reload', {ignoreCache: true})
+    const activeDiscovery = await waitFor(async () => {
+      const result = await evaluate(
+        `chrome.runtime.sendMessage({type: 'discovery:active'})`
+      )
+      return result?.ok && result.data.feeds.every((feed) => feed.subscribed)
+        ? result
+        : false
+    }, 'subscribed feed was still reported as unsubscribed')
+    assert(activeDiscovery.data.feeds.length > 0, 'no feeds were detected on reload')
     await waitFor(
-      async () => (await bodyText()).includes('All posts'),
-      'subscribed feed did not open the reader'
+      async () => (await addButtonState())?.disabled === true,
+      'add-feed button stayed enabled for a subscribed-only page'
     )
-    await sleep(500)
     assert(
       !(await bodyText()).includes('Add feed'),
       'subscribed-only page still opened the add screen'
@@ -443,6 +480,13 @@ async function main() {
 
     await openPage('/multi.html')
     await popup.send('Page.reload', {ignoreCache: true})
+    await waitFor(
+      async () => (await addButtonState())?.disabled === false,
+      'multiple-feed page did not enable the add button'
+    )
+    await evaluate(
+      `document.querySelector('button[aria-label="Add feed from this page"]')?.click()`
+    )
     await waitFor(
       async () => (await bodyText()).includes('Add feed'),
       'multiple-feed page did not open the add screen'
@@ -461,7 +505,7 @@ async function main() {
     })()`)
     const multiTabId = await pageTabId('/multi.html')
     if (multiTabId) await evaluate(`chrome.tabs.remove(${multiTabId})`)
-    console.log('   subscribed-only pages stay in the reader; multiple feeds show a picker')
+    console.log('   subscribed-only pages disable the button; multiple feeds show a picker')
 
     console.log('8. add a cookie-protected feed through the page context')
     const cookie = await discoverPage('/cookie-page', '/cookie-page.rss')
@@ -491,7 +535,13 @@ async function main() {
       return posts.length === 3
     }, 'page-mode refresh did not add the new post')
 
-    for (const tabId of [cookie.tabId, article.tabId, probe.tabId, redditLike.tabId]) {
+    for (const tabId of [
+      cookie.tabId,
+      article.tabId,
+      probe.tabId,
+      redditLike.tabId,
+      redditDirect.tabId
+    ]) {
       await evaluate(`chrome.tabs.remove(${tabId})`).catch(() => {})
     }
     const failedRefresh = await evaluate(

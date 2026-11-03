@@ -1,7 +1,6 @@
 import {describe, expect, it} from 'vitest'
 import {
   actionIconForCount,
-  actionIconKind,
   GRAY_ACTION_ICONS,
   UNREAD_ACTION_ICONS
 } from '../../src/shared/model/action-icon'
@@ -17,11 +16,3 @@ describe('actionIconForCount', () => {
   })
 })
 
-describe('actionIconKind', () => {
-  it('maps feed availability and unread state', () => {
-    expect(actionIconKind(false, 0)).toBe('gray')
-    expect(actionIconKind(false, 2)).toBe('unread')
-    expect(actionIconKind(true, 0)).toBe('add-gray')
-    expect(actionIconKind(true, 2)).toBe('add-amber')
-  })
-})

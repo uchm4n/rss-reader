@@ -44,8 +44,8 @@ Only feed URLs, article links, images referenced by feeds and a bounded set of s
 ## Feed discovery
 
 - While browsing an HTTP(S) page, the extension detects feed links in the page head, direct feed URLs, and a bounded set of same-origin feed paths.
-- The toolbar icon becomes a `+` variant when the current tab offers at least one unsubscribed feed. The unread badge stays global.
-- Clicking opens a prefilled Add Feed screen. Multiple detected feeds get a picker; folder and refresh interval are chosen there.
+- The toolbar icon keeps the normal RSS/unread state. The popup top bar shows a `+` button between search and refresh when the active page has an unsubscribed feed; otherwise it stays visible but disabled.
+- Clicking `+` opens a prefilled Add Feed screen. Multiple detected feeds get a picker; folder and refresh interval are chosen there.
 - Feeds that block extension-background requests (for example Reddit) fall back to fetching inside the current page tab. Those feeds refresh only while a tab on the same site is open.
 
 ## Permissions
