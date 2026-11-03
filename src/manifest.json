@@ -4,7 +4,6 @@
   "name": "RSS Reader",
   "short_name": "RSS Reader",
   "description": "A local-first RSS and Atom reader.",
-  "default_locale": "en",
   "action": {
     "default_icon": {
       "16": "extension-icons/icon-gray-16.png",

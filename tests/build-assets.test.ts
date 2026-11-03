@@ -5,7 +5,6 @@ const manifest = JSON.parse(readFileSync('src/manifest.json', 'utf8')) as {
   background: {service_worker: string}
   action: {default_popup: string; default_icon: Record<string, string>}
   icons: Record<string, string>
-  default_locale?: string
   permissions?: string[]
   content_scripts?: unknown
 }
@@ -18,16 +17,17 @@ describe('build assets', () => {
     expect(manifest.action.default_popup).toBe('popup/index.html')
   })
 
-  it('resolves every manifest icon and locale', () => {
+  it('resolves every manifest icon', () => {
     for (const path of [
       ...Object.values(manifest.icons),
       ...Object.values(manifest.action.default_icon)
     ]) {
       expect(existsSync(`public/${path}`), path).toBe(true)
     }
+  })
 
-    expect(manifest.default_locale).toBe('en')
-    expect(existsSync('_locales/en/messages.json')).toBe(true)
+  it('does not require a locale catalog', () => {
+    expect(existsSync('_locales')).toBe(false)
   })
 
   it('has no content scripts', () => {
