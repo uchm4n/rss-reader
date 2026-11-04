@@ -5,6 +5,7 @@ import {renderPostContent} from '../../lib/post-content'
 interface PostBodyProps {
     content: string
     contentType?: ContentFormat
+    imageUrl?: string | null
 }
 
 function copyCode(event: MouseEvent<HTMLDivElement>) {
@@ -29,10 +30,10 @@ function copyCode(event: MouseEvent<HTMLDivElement>) {
         .catch(() => {})
 }
 
-export function PostBody({content, contentType}: PostBodyProps) {
+export function PostBody({content, contentType, imageUrl}: PostBodyProps) {
     const rendered = useMemo(
-        () => renderPostContent(content, contentType),
-        [content, contentType]
+        () => renderPostContent(content, contentType, imageUrl),
+        [content, contentType, imageUrl]
     )
 
     if (rendered.kind === 'text') {

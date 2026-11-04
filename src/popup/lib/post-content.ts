@@ -1,5 +1,7 @@
 import {marked} from 'marked'
 import type {ContentFormat} from '@/shared/model/post'
+import {normalizeEmbedUrl} from './embed'
+import {renderRedditContent} from './reddit-content'
 import {sanitizePostHtml} from './sanitize'
 
 export type ContentKind = ContentFormat | 'json'
@@ -61,6 +63,66 @@ function decodeText(value: string): string {
     return textarea.value
 }
 
+function directVideoUrl(raw: string): string | null {
+    try {
+        const url = new URL(raw)
+        if (url.protocol !== 'https:') return null
+        if (!/\.(mp4|webm|ogg)$/i.test(url.pathname)) return null
+        return url.toString()
+    } catch {
+        return null
+    }
+}
+
+function insertionPoint(anchor: Element): Element {
+    const table = anchor.closest('table')
+    if (table) {
+        return table.parentElement?.classList.contains('table-scroll')
+            ? table.parentElement
+            : table
+    }
+
+    const textBlock = anchor.closest('p, figure, blockquote')
+    if (textBlock) return textBlock
+
+    const list = anchor.closest('li')?.parentElement
+    if (list) return list
+
+    return anchor.closest('div, section') ?? anchor.parentElement ?? anchor
+}
+
+function shouldReplaceBlock(block: Element, anchor: Element): boolean {
+    const table = block.querySelector('table')
+    if (block.classList.contains('table-scroll') && table) {
+        return !table.querySelector('th') && table.rows.length <= 2
+    }
+    if (block.tagName === 'TABLE') {
+        return !block.querySelector('th') && (block as HTMLTableElement).rows.length <= 2
+    }
+    if (block.tagName === 'LI') return false
+
+    const blockText = (block.textContent ?? '').replace(/\s+/g, ' ').trim()
+    const anchorText = (anchor.textContent ?? '').replace(/\s+/g, ' ').trim()
+    return !blockText || blockText === anchorText
+}
+
+function createEmbedIframe(url: string): Element | null {
+    const template = document.createElement('template')
+    template.innerHTML = sanitizePostHtml(
+        `<iframe src="${escapeHtml(url)}"></iframe>`
+    )
+    return template.content.firstElementChild
+}
+
+function createVideo(url: string): HTMLVideoElement {
+    const video = document.createElement('video')
+    video.setAttribute('src', url)
+    video.setAttribute('controls', '')
+    video.setAttribute('playsinline', '')
+    video.setAttribute('preload', 'metadata')
+    return video
+}
+
 function codeLanguage(pre: HTMLPreElement): string {
     const code = pre.querySelector('code')
     const match = /(?:^|\s)(?:language|lang)-([\w+#.-]+)/i.exec(
@@ -108,9 +170,94 @@ export function enhancePostHtml(html: string): string {
     }
 
     for (const image of root.querySelectorAll('img')) {
+        const width = Number(image.getAttribute('width'))
+        const height = Number(image.getAttribute('height'))
+        if (
+            Number.isFinite(width) &&
+            width > 0 &&
+            Number.isFinite(height) &&
+            height > 0
+        ) {
+            image.style.setProperty('aspect-ratio', `${width} / ${height}`)
+        }
+
+        image.removeAttribute('width')
+        image.removeAttribute('height')
         image.setAttribute('loading', 'lazy')
         image.setAttribute('decoding', 'async')
         image.setAttribute('referrerpolicy', 'no-referrer')
+    }
+
+    for (const video of root.querySelectorAll('video')) {
+        video.setAttribute('controls', '')
+        video.setAttribute('playsinline', '')
+        video.setAttribute('preload', 'metadata')
+        video.removeAttribute('autoplay')
+    }
+
+    for (const audio of root.querySelectorAll('audio')) {
+        audio.setAttribute('controls', '')
+        audio.setAttribute('preload', 'metadata')
+        audio.removeAttribute('autoplay')
+    }
+
+    const seenMedia = new Set<string>()
+    for (const media of root.querySelectorAll('iframe, video')) {
+        const src = media.getAttribute('src')
+        if (src) seenMedia.add(src)
+    }
+
+    const candidates = new Map<
+        Element,
+        {embed?: string; video?: string; anchor?: Element}
+    >()
+    for (const anchor of root.querySelectorAll('a[href]')) {
+        const href = anchor.getAttribute('href')
+        if (!href) continue
+        if (anchor.closest('.reddit-card')) continue
+
+        const block = insertionPoint(anchor)
+        if (block.querySelector('iframe, video')) continue
+
+        const candidate = candidates.get(block) ?? {}
+        const videoUrl = directVideoUrl(href)
+        if (videoUrl) {
+            candidate.video = videoUrl
+            candidate.anchor = anchor
+            candidates.set(block, candidate)
+            continue
+        }
+
+        const embed = normalizeEmbedUrl(href)
+        if (embed && !candidate.embed) {
+            candidate.embed = embed.url
+            candidate.anchor = anchor
+            candidates.set(block, candidate)
+        }
+    }
+
+    for (const [block, candidate] of candidates) {
+        const replace = candidate.anchor
+            ? shouldReplaceBlock(block, candidate.anchor)
+            : false
+
+        if (candidate.video) {
+            if (seenMedia.has(candidate.video)) continue
+            seenMedia.add(candidate.video)
+            const video = createVideo(candidate.video)
+            if (replace) block.replaceWith(video)
+            else block.after(video)
+            continue
+        }
+
+        if (candidate.embed) {
+            if (seenMedia.has(candidate.embed)) continue
+            seenMedia.add(candidate.embed)
+            const iframe = createEmbedIframe(candidate.embed)
+            if (!iframe) continue
+            if (replace) block.replaceWith(iframe)
+            else block.after(iframe)
+        }
     }
 
     return template.innerHTML
@@ -118,7 +265,8 @@ export function enhancePostHtml(html: string): string {
 
 export function renderPostContent(
     content: string,
-    declared?: ContentFormat
+    declared?: ContentFormat,
+    imageUrl?: string | null
 ): RenderedPostContent {
     const kind = detectContentKind(content, declared)
     if (kind === 'text') {
@@ -135,5 +283,9 @@ export function renderPostContent(
         return {kind, html: enhancePostHtml(sanitizePostHtml(html))}
     }
 
-    return {kind, html: enhancePostHtml(sanitizePostHtml(content))}
+    const reddit = renderRedditContent(content, imageUrl)
+    return {
+        kind,
+        html: enhancePostHtml(sanitizePostHtml(reddit ?? content))
+    }
 }

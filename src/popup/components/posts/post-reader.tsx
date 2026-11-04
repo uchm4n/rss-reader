@@ -179,6 +179,7 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
                             <PostBody
                                 content={post.contentHtml}
                                 contentType={post.contentType}
+                                imageUrl={post.imageUrl}
                             />
                         </div>
                     ) : (

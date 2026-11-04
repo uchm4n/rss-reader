@@ -23,6 +23,9 @@ Only feed URLs, article links, images referenced by feeds and a bounded set of s
 - A single dynamic alarm refreshes due feeds in small batches. The minimum interval is 30 seconds; feeds can override the global interval. The global dropdown labels the 15-minute option as the default.
 - Search is a local filter over stored posts, capped at 200 results. It runs as you type after a 250 ms debounce; clearing the field restores the previous view.
 - Feed icons are fetched on add/refresh and cached in IndexedDB as data URLs for 30 days. Missing icons fall back to the RSS icon.
+- Post media is responsive: images and videos cap at 60vh, video/audio get native controls, and YouTube, Vimeo, Dailymotion, Reddit, TikTok, Instagram and Facebook iframes are allowlisted and sandboxed. Short links that require a redirect are not supported.
+- Supported provider links in post content are automatically enriched into embeds, and direct `.mp4`, `.webm` and `.ogg` links get a native video player.
+- Reddit posts render as one media card built from the RSS entry: video uses Reddit's media-only player, images/links/self/gallery use the entry's thumbnail, summary and links, and the post title is not repeated inside the card. No autoplay.
 - Settings → Storage shows a read-only summary of the Dexie stores, record counts and the browser storage estimate; Clear all data removes everything.
 
 ## Feed discovery

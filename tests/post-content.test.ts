@@ -140,4 +140,127 @@ describe('renderPostContent', () => {
     expect(htmlOf(result)).toContain('target="_blank"')
     expect(htmlOf(result)).toContain('rel="noreferrer noopener"')
   })
+
+  it('adds controls and metadata preload to videos without autoplay', () => {
+    const result = renderPostContent(
+      '<video autoplay src="https://example.com/video.mp4"></video>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('controls')
+    expect(htmlOf(result)).toContain('playsinline')
+    expect(htmlOf(result)).toContain('preload="metadata"')
+    expect(htmlOf(result)).not.toContain('autoplay')
+  })
+
+  it('adds controls to audio without autoplay', () => {
+    const result = renderPostContent(
+      '<audio autoplay src="https://example.com/audio.mp3"></audio>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('controls')
+    expect(htmlOf(result)).toContain('preload="metadata"')
+    expect(htmlOf(result)).not.toContain('autoplay')
+  })
+
+  it('preserves image aspect ratio without fixed dimensions', () => {
+    const result = renderPostContent(
+      '<img src="https://example.com/tall.png" width="400" height="1200">',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('aspect-ratio: 400 / 1200')
+    expect(htmlOf(result)).not.toContain('width="400"')
+    expect(htmlOf(result)).not.toContain('height="1200"')
+  })
+
+  it('replaces a link-only paragraph with a safe embed', () => {
+    const result = renderPostContent(
+      '<p><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/an_actual_footage_from_slovenian_highway/">Watch</a></p>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain(
+      'src="https://www.redditmedia.com/r/WTF/comments/1wen3tq/an_actual_footage_from_slovenian_highway/?ref_source=embed'
+    )
+    expect(htmlOf(result)).toContain('sandbox="allow-scripts')
+    expect(htmlOf(result)).not.toContain('<p>')
+    expect(htmlOf(result)).not.toContain('>Watch<')
+  })
+
+  it('keeps surrounding text when appending an embed', () => {
+    const result = renderPostContent(
+      '<p>Watch this: <a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/">link</a></p>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('Watch this:')
+    expect(htmlOf(result)).toContain('<iframe')
+  })
+
+  it('renders direct video links as players', () => {
+    const result = renderPostContent(
+      '<p><a href="https://packaged-media.redd.it/abc/DASH_720.mp4">video</a></p>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('<video')
+    expect(htmlOf(result)).toContain(
+      'src="https://packaged-media.redd.it/abc/DASH_720.mp4"'
+    )
+    expect(htmlOf(result)).toContain('controls')
+  })
+
+  it('replaces a Reddit-style media-card table with the embed', () => {
+    const result = renderPostContent(
+      '<table><tbody><tr><td><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/">Watch</a></td></tr></tbody></table>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelector('table')).toBeNull()
+    expect(container.querySelector('.table-scroll')).toBeNull()
+    expect(container.querySelector('iframe')?.getAttribute('src')).toContain(
+      'redditmedia.com'
+    )
+    expect(container.textContent).not.toContain('Watch')
+  })
+
+  it('replaces a media-card table even when it contains summary text', () => {
+    const result = renderPostContent(
+      '<table><tbody><tr><td><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/"><img src="https://example.com/thumb.png"></a></td><td><div>Post title</div><p>Summary text</p><a href="https://v.redd.it/abc">[link]</a></td></tr></tbody></table>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelector('table')).toBeNull()
+    expect(container.textContent).not.toContain('Summary text')
+    expect(container.querySelector('iframe')?.getAttribute('src')).toContain(
+      'redditmedia.com'
+    )
+  })
+
+  it('prefers a direct video link over an embed in the same block', () => {
+    const result = renderPostContent(
+      '<p><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/">post</a> <a href="https://packaged-media.redd.it/abc/DASH_720.mp4">video</a></p>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('<video')
+    expect(htmlOf(result)).not.toContain('<iframe')
+  })
+
+  it('keeps picture sources and lazy-loads the nested image', () => {
+    const result = renderPostContent(
+      '<picture><source srcset="https://example.com/a.webp"><img src="https://example.com/a.jpg"></picture>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('<picture>')
+    expect(htmlOf(result)).toContain('srcset="https://example.com/a.webp"')
+    expect(htmlOf(result)).toContain('loading="lazy"')
+  })
 })
