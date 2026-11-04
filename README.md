@@ -1,9 +1,17 @@
 # RSS Reader
 
 A local-first browser extension for RSS, Atom, RDF and JSON feeds. 
-No account, hosted API's, analytics or remote push — everything lives in clients browser, offline.
+No account, hosted API's, analytics or remote push, everything lives inside the browser, offline.
 
 ![screenshot.png](screenshot.png)
+
+### Technology
+
+- **[Extension.js](https://extension.js.org/)** — Manifest V3 framework (Chrome, Firefox, Edge)
+- **React + TypeScript** — popup UI and shared logic
+- **[Dexie 4](https://dexie.org/) + dexie-react-hooks** — IndexedDB wrapper with live React queries
+- **Tailwind + Radix UI / shadcn** — utility-first styling
+- **Vitest** — unit, DB, parser, popup and E2E tests
 
 ### Settings
 
