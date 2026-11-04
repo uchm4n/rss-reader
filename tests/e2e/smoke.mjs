@@ -390,6 +390,34 @@ async function main() {
     }, 'mark all as read did not clear unread posts and the badge')
     console.log('   mark all as read cleared the list and the badge')
 
+    console.log('3c. search as you type')
+    await evaluate(`(() => {
+      const input = document.querySelector('input[aria-label="Search all feeds"]')
+      if (!input) return false
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
+      setter?.call(input, 'New RSS')
+      input.dispatchEvent(new Event('input', {bubbles: true}))
+      return true
+    })()`)
+    await waitFor(
+      async () =>
+        (await bodyText()).includes('Results for “New RSS”') &&
+        (await bodyText()).includes('New RSS item 1'),
+      'search-as-you-type did not filter results'
+    )
+    assert(
+      !(await bodyText()).includes('RSS One'),
+      'search-as-you-type did not hide non-matching posts'
+    )
+    await evaluate(`document.querySelector('button[aria-label="Clear search"]')?.click()`)
+    await waitFor(
+      async () =>
+        (await bodyText()).includes('All posts') &&
+        !(await bodyText()).includes('Results for'),
+      'clearing search did not restore the previous view'
+    )
+    console.log('   typing filtered results after debounce; clearing restored All posts')
+
     console.log('4. import OPML')
     const opml = await (await fetch(`${fixture.url}/opml.xml`)).text()
     const imported = await command({type: 'opml:import', xml: opml})

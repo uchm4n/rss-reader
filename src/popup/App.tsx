@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {toast} from 'sonner'
 import {Toaster} from '@/components/ui/sonner'
 import {TooltipProvider} from '@/components/ui/tooltip'
@@ -21,6 +21,8 @@ import {openExternal} from './platform'
 import type {SettingsSection} from './settings/settings-nav'
 import {SettingsView} from './settings/settings-view'
 
+const SEARCH_DEBOUNCE_MS = 250
+
 export default function App() {
     const feeds = useFeeds()
     const folders = useFolders()
@@ -36,6 +38,7 @@ export default function App() {
     const [discovery, setDiscovery] = useState<DiscoveryResult | null>(null)
     const [isRefreshing, setIsRefreshing] = useState(false)
     const previousSelection = useRef<Selection>({kind: 'all'})
+    const selectionRef = useRef<Selection>(selection)
     const appliedStartView = useRef(false)
 
     useSyncActionBadge()
@@ -60,6 +63,7 @@ export default function App() {
     }, [])
 
     useEffect(() => {
+        selectionRef.current = selection
         setOpenPostId(null)
     }, [selection])
 
@@ -74,14 +78,37 @@ export default function App() {
         setSelection(next)
     }
 
-    const handleSearchSubmit = () => {
-        const query = searchValue.trim()
+    const commitSearch = useCallback((raw: string) => {
+        const query = raw.trim()
+        const current = selectionRef.current
+
         if (!query) {
-            setSelection(previousSelection.current)
+            if (current.kind === 'search') {
+                setSelection(previousSelection.current)
+            }
             return
         }
-        if (selection.kind !== 'search') previousSelection.current = selection
+
+        if (current.kind !== 'search') {
+            previousSelection.current = current
+        }
+        if (current.kind === 'search' && current.query === query) {
+            return
+        }
+
         setSelection({kind: 'search', query})
+    }, [setSelection])
+
+    useEffect(() => {
+        const timer = window.setTimeout(
+            () => commitSearch(searchValue),
+            SEARCH_DEBOUNCE_MS
+        )
+        return () => window.clearTimeout(timer)
+    }, [searchValue, commitSearch])
+
+    const handleSearchSubmit = () => {
+        commitSearch(searchValue)
     }
 
     const handleClearSearch = () => {

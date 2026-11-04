@@ -21,7 +21,7 @@ Only feed URLs, article links, images referenced by feeds and a bounded set of s
 - Each feed keeps the newest 200 posts by default; the limit is configurable in settings. A single feed shows all of its retained posts, while aggregate views show the newest 200 matching posts. 
 - `status: true` means read. `starred` is independent.
 - A single dynamic alarm refreshes due feeds in small batches. The minimum interval is 30 seconds; feeds can override the global interval. The global dropdown labels the 15-minute option as the default.
-- Search is a local filter over stored posts, capped at 200 results.
+- Search is a local filter over stored posts, capped at 200 results. It runs as you type after a 250 ms debounce; clearing the field restores the previous view.
 - Feed icons are fetched on add/refresh and cached in IndexedDB as data URLs for 30 days. Missing icons fall back to the RSS icon.
 - Settings → Storage shows a read-only summary of the Dexie stores, record counts and the browser storage estimate; Clear all data removes everything.
 
