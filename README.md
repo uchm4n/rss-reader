@@ -1,61 +1,46 @@
 # RSS Reader
 
-A local-first RSS and Atom reader for Browser, built with TypeScript, React, Dexie and feedsmith. Feeds, posts, folders, read/star state and settings live in the browser. 
-There is no account, hosted API, sync, analytics or remote push.
+A local-first browser extension for RSS, Atom, RDF and JSON feeds. 
+No account, hosted API's, analytics or remote push — everything lives in clients browser, offline.
 
 ![screenshot.png](screenshot.png)
-## Architecture
 
-- `src/popup` renders the reader and settings. It reads with `useLiveQuery` and writes read/star/settings changes directly.
-- `src/background` owns fetching, parsing, retention, scheduling, notifications, the toolbar badge and feed/folder/OPML commands.
-- `src/db` holds the Dexie schema and post/settings repositories.
-- `src/shared/parser` normalizes RSS, Atom, RDF, JSON Feed and OPML with feedsmith.
-- `src/shared/model` contains pure helpers for the feed tree, unread counts, search, selection and post formatting.
+### Settings
 
-Only feed URLs, article links, images referenced by feeds and a bounded set of same-origin feed candidates are fetched. Stored posts render without a network connection; refreshing needs one.
+- **General:** theme (system/light/dark), refresh interval (30 seconds to 1 hour; 15 minutes default), retention per feed (default 200), notifications, mark read on open, and start view (All/Unread/Starred).
+- **Feeds:** add, edit and delete feeds; see URL, folder, last fetch and last error
+- **Folders:** add, rename, reorder and delete folders
+- **OPML:** import a file or export subscriptions
+- **Storage:** read-only store table and record counts, browser storage estimate, and Clear all data
 
-## Data behaviour
+**Note:** Clear all data removes feeds, folders, posts and settings from IndexedDB. It does not remove the last-view selection stored in `localStorage`.
 
-- First successful fetch imports the feed's existing entries as read, up to the retention limit.
-- Later fetches insert new entries at the top as unread.
-- Each feed keeps the newest 200 posts by default; the limit is configurable in settings. A single feed shows all of its retained posts, while aggregate views show the newest 200 matching posts. 
-- `status: true` means read. `starred` is independent.
-- A single dynamic alarm refreshes due feeds in small batches. The minimum interval is 30 seconds; feeds can override the global interval. The global dropdown labels the 15-minute option as the default.
-- Search is a local filter over stored posts, capped at 200 results. It runs as you type after a 250 ms debounce; clearing the field restores the previous view.
-- Feed icons are fetched on add/refresh and cached in IndexedDB as data URLs for 30 days. Missing icons fall back to the RSS icon.
-- Post media is responsive: images and videos cap at 60vh, video/audio get native controls, and YouTube, Vimeo, Dailymotion, Reddit, TikTok, Instagram and Facebook iframes are allowlisted and sandboxed. Short links that require a redirect are not supported.
-- Supported provider links in post content are automatically enriched into embeds, and direct `.mp4`, `.webm` and `.ogg` links get a native video player.
-- Reddit posts render as one media card built from the RSS entry: video uses Reddit's media-only player, images/links/self/gallery use the entry's thumbnail, summary and links, and the post title is not repeated inside the card. No autoplay.
-- Settings → Storage shows a read-only summary of the Dexie stores, record counts and the browser storage estimate; Clear all data removes everything.
+### Behaviour
 
-## Feed discovery
-
-- While browsing an HTTP(S) page, the extension detects feed links in the page head, direct feed URLs, and a bounded set of same-origin feed paths.
-- The toolbar icon keeps the normal RSS/unread state. The popup top bar always shows an enabled `+` button between search and refresh.
-- Clicking `+` opens Settings → Feeds. If the active page has an unsubscribed feed, its URL is prefilled in the add form; otherwise the field is empty for manual entry. Folder and refresh interval are chosen there.
-- Feeds that block extension-background requests (for example Reddit) fall back to fetching inside the current page tab. Those feeds refresh only while a tab on the same site is open.
-
-## Permissions
-
-- `alarms`, `storage`, `unlimitedStorage`, `notifications`, `scripting`.
-- `scripting` injects a small on-demand detector when a tab loads or activates; it is not a persistent content script.
-- `http://*/*` and `https://*/*` host permissions for direct feed and article fetches.
-- No content scripts, no hosted settings page and no external update URL.
+- First fetch imports existing entries as read; later fetches add new ones as unread.
+- Each feed retains the newest 200 posts by default (configurable); aggregate views cap at 200.
+- Feeds refresh on a dynamic alarm (15min default); failures back off exponentially up to 1 hour.
+- Media is responsive: images/video cap at 60vh, native controls, sandboxed iframes, no autoplay.
 
 ## Development
 
 ```bash
 npm install
 npm run dev          # Extension.js dev browser
+npm start            # Extension.js start
 npm run build:chrome # production build in dist/chrome
+npm run build:firefox
+npm run build:edge
 npm run preview      # preview the production build
-npm run test         # Vitest
+npm test             # Vitest unit, DB, parser, popup and local-fixture tests
+npm run test:watch   # Vitest watch mode
 npm run test:e2e     # Chrome for Testing smoke test with local fixtures
 npm run typecheck    # tsc --noEmit
 ```
 
-`npm run test:e2e` discovers Playwright's Chrome for Testing cache. Set
-`CHROME_BIN` to a Chrome for Testing or Chromium binary if it is installed elsewhere. Current branded Chrome builds ignore `--load-extension`.
+`npm run test:e2e` discovers Playwright’s Chrome for Testing cache on macOS and checks common Chrome/Chromium locations. Set `CHROME_BIN` to a Chrome for Testing or Chromium binary if it is installed elsewhere. Current branded Chrome builds ignore `--load-extension`.
+
+Run `npm run build:chrome` before `npm run test:e2e`; the E2E test uses the built extension in `dist/chrome`, not the source tree.
 
 ## Loading the extension
 
@@ -66,12 +51,6 @@ npm run typecheck    # tsc --noEmit
 
 Use a fresh extension profile: this is a new extension identity with a fresh `rss-reader` database and no migration from older products.
 
-## Verification
-
-`npm run test`, `npm run typecheck` and `npm run build:chrome` cover the unit, Dexie and build checks. 
-The test suite includes parser fixtures, retention and dedupe, scheduler backoff, commands, OPML import/export, settings, feed discovery and the feed tree.
-End-to-end checks use a local fixture server and Chrome for Testing, including link detection, generic probing, Reddit-like pages and page-context fetch fallback.
-Reddit's live challenge page may block headless Chrome for Testing; verify the two live Reddit URLs manually in a normal Chrome profile.
-
 ## License
+
 MIT
