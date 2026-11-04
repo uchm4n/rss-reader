@@ -3,6 +3,7 @@
 A local-first RSS and Atom reader for Browser, built with TypeScript, React, Dexie and feedsmith. Feeds, posts, folders, read/star state and settings live in the browser. 
 There is no account, hosted API, sync, analytics or remote push.
 
+![screenshot.png](screenshot.png)
 ## Architecture
 
 - `src/popup` renders the reader and settings. It reads with `useLiveQuery` and writes read/star/settings changes directly.
