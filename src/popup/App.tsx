@@ -11,7 +11,7 @@ import {Sidebar} from './components/sidebar/sidebar'
 import {TopBar} from './components/top-bar'
 import {useFeeds} from './hooks/use-feeds'
 import {useFolders} from './hooks/use-folders'
-import {useSelection} from './hooks/use-selection'
+import {useRestoredUiState} from './hooks/use-restored-ui-state'
 import {useSettings} from './hooks/use-settings'
 import {useSyncActionBadge} from './hooks/use-action-badge'
 import {useTheme} from './hooks/use-theme'
@@ -27,11 +27,22 @@ export default function App() {
     const feeds = useFeeds()
     const folders = useFolders()
     const settings = useSettings()
-    const {selection, setSelection} = useSelection()
+    const {
+        selection,
+        select,
+        collapsedFolderIds,
+        toggleFolder,
+        openPostId,
+        setOpenPostId,
+        hydrated,
+        restored
+    } = useRestoredUiState({
+        ready: settings !== undefined,
+        enabled: settings?.persistUiState ?? false
+    })
     const [searchValue, setSearchValue] = useState(
         selection.kind === 'search' ? selection.query : ''
     )
-    const [openPostId, setOpenPostId] = useState<string | null>(null)
     const [settingsOpen, setSettingsOpen] = useState(false)
     const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
     const [settingsInitialUrl, setSettingsInitialUrl] = useState('')
@@ -40,6 +51,7 @@ export default function App() {
     const previousSelection = useRef<Selection>({kind: 'all'})
     const selectionRef = useRef<Selection>(selection)
     const appliedStartView = useRef(false)
+    const appliedRestoredSearch = useRef(false)
 
     useSyncActionBadge()
     useTheme()
@@ -64,18 +76,23 @@ export default function App() {
 
     useEffect(() => {
         selectionRef.current = selection
-        setOpenPostId(null)
     }, [selection])
 
     useEffect(() => {
-        if (!settings || appliedStartView.current) return
+        if (!hydrated || !restored || appliedRestoredSearch.current) return
+        appliedRestoredSearch.current = true
+        if (selection.kind === 'search') setSearchValue(selection.query)
+    }, [hydrated, restored, selection])
+
+    useEffect(() => {
+        if (!settings || !hydrated || appliedStartView.current) return
         appliedStartView.current = true
-        setSelection({kind: settings.startView})
-    }, [settings, setSelection])
+        if (!restored) select({kind: settings.startView})
+    }, [settings, hydrated, restored, select])
 
     const handleSelect = (next: Selection) => {
         setSearchValue('')
-        setSelection(next)
+        select(next)
     }
 
     const commitSearch = useCallback((raw: string) => {
@@ -84,7 +101,7 @@ export default function App() {
 
         if (!query) {
             if (current.kind === 'search') {
-                setSelection(previousSelection.current)
+                select(previousSelection.current)
             }
             return
         }
@@ -96,8 +113,8 @@ export default function App() {
             return
         }
 
-        setSelection({kind: 'search', query})
-    }, [setSelection])
+        select({kind: 'search', query})
+    }, [select])
 
     useEffect(() => {
         const timer = window.setTimeout(
@@ -113,7 +130,7 @@ export default function App() {
 
     const handleClearSearch = () => {
         setSearchValue('')
-        setSelection(previousSelection.current)
+        select(previousSelection.current)
     }
 
     const openSettings = (section: SettingsSection = 'general', initialUrl = '') => {
@@ -189,6 +206,8 @@ export default function App() {
                         selection={selection}
                         onSelect={handleSelect}
                         onOpenSettings={() => openSettings()}
+                        collapsed={collapsedFolderIds}
+                        onToggleFolder={toggleFolder}
                     />
                 }
             >

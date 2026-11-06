@@ -1,4 +1,3 @@
-import {useState} from 'react'
 import {Settings} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
@@ -12,20 +11,18 @@ interface SidebarProps {
     selection: Selection
     onSelect: (selection: Selection) => void
     onOpenSettings: () => void
+    collapsed: Set<string>
+    onToggleFolder: (folderId: string) => void
 }
 
-export function Sidebar({selection, onSelect, onOpenSettings}: SidebarProps) {
+export function Sidebar({
+    selection,
+    onSelect,
+    onOpenSettings,
+    collapsed,
+    onToggleFolder
+}: SidebarProps) {
     const tree = useFeedTree()
-    const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set())
-
-    const toggleFolder = (folderId: string) => {
-        setCollapsed((previous) => {
-            const next = new Set(previous)
-            if (next.has(folderId)) next.delete(folderId)
-            else next.add(folderId)
-            return next
-        })
-    }
 
     return (
         <aside className="flex h-full w-[248px] shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -41,7 +38,7 @@ export function Sidebar({selection, onSelect, onOpenSettings}: SidebarProps) {
                         nodes={tree}
                         selection={selection}
                         collapsed={collapsed}
-                        onToggle={toggleFolder}
+                        onToggle={onToggleFolder}
                         onSelect={onSelect}
                     />
                 </div>

@@ -15,13 +15,13 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 
 ### Settings
 
-- **General:** theme (system/light/dark), refresh interval (30 seconds to 1 hour; 15 minutes default), retention per feed (default 200), notifications, mark read on open, and start view (All/Unread/Starred).
+- **General:** theme (system/light/dark), refresh interval (30 seconds to 1 hour; 15 minutes default), retention per feed (default 200), notifications, mark read on open, start view (All/Unread/Starred), and remember app state (last view, collapsed folders and open post; off by default).
 - **Feeds:** add, edit and delete feeds; see URL, folder, last fetch and last error
 - **Folders:** add, rename, reorder and delete folders
 - **OPML:** import a file or export subscriptions
 - **Storage:** read-only store table and record counts, browser storage estimate, and Clear all data
 
-**Note:** Clear all data removes feeds, folders, posts and settings from IndexedDB. It does not remove the last-view selection stored in `localStorage`.
+**Note:** Clear all data removes feeds, folders, posts and settings (including the saved app state) from IndexedDB. It does not remove the last-view selection stored in `localStorage`.
 
 ### Behaviour
 
@@ -29,6 +29,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 - Each feed retains the newest 200 posts by default (configurable); aggregate views cap at 200.
 - Feeds refresh on a dynamic alarm (15min default); failures back off exponentially up to 1 hour.
 - Media is responsive: images/video cap at 60vh, native controls, sandboxed iframes, no autoplay.
+- With **Remember app state** enabled, the popup reopens on the last view, with collapsed folders and the open post restored.
 
 ## Development
 

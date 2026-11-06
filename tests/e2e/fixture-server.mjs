@@ -9,14 +9,14 @@ function xmlEscape(value) {
     .replaceAll('"', '&quot;')
 }
 
-function rssDocument(items, base) {
+function rssDocument(items, base, title = 'Fixture RSS') {
   return `<?xml version="1.0"?>
 <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>Fixture RSS</title>
+    <title>${xmlEscape(title)}</title>
     <link>${base}/</link>
-    <description>Fixture RSS feed</description>
-    <image><url>${base}/favicon.png</url><title>Fixture RSS</title><link>${base}/</link></image>
+    <description>${xmlEscape(title)} feed</description>
+    <image><url>${base}/favicon.png</url><title>${xmlEscape(title)}</title><link>${base}/</link></image>
     ${items
       .map(
         (item) => `<item>
@@ -205,7 +205,7 @@ export async function startFixtureServer(port = 0) {
         send(response, 200, 'application/feed+json', jsonDocument(jsonItems))
         return
       case '/retention.xml':
-        send(response, 200, 'application/rss+xml', rssDocument(retentionItems, base()))
+        send(response, 200, 'application/rss+xml', rssDocument(retentionItems, base(), 'Fixture Retention'))
         return
       case '/article.html':
         send(
@@ -219,7 +219,7 @@ export async function startFixtureServer(port = 0) {
         )
         return
       case '/article.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(articleItems, base()))
+        send(response, 200, 'application/rss+xml', rssDocument(articleItems, base(), 'Fixture Article'))
         return
       case '/multi.html':
         send(
@@ -255,7 +255,7 @@ export async function startFixtureServer(port = 0) {
         )
         return
       case '/probe.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(probeItems, base()))
+        send(response, 200, 'application/rss+xml', rssDocument(probeItems, base(), 'Fixture Probe'))
         return
       case '/reddit-like/news':
       case '/reddit-like/news/':
@@ -267,7 +267,7 @@ export async function startFixtureServer(port = 0) {
         )
         return
       case '/reddit-like/news.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(redditItems, base()))
+        send(response, 200, 'application/rss+xml', rssDocument(redditItems, base(), 'Fixture Reddit'))
         return
       case '/cookie-page':
         send(
@@ -286,7 +286,7 @@ export async function startFixtureServer(port = 0) {
           send(response, 403, 'text/plain', 'Forbidden')
           return
         }
-        send(response, 200, 'application/rss+xml', rssDocument(cookieItems, base()))
+        send(response, 200, 'application/rss+xml', rssDocument(cookieItems, base(), 'Fixture Cookie'))
         return
       case '/add-cookie-item': {
         cookieAdded += 1

@@ -3,6 +3,7 @@ import {Input} from '@/components/ui/input'
 import {db} from '@/db/db'
 import {setSetting} from '@/db/settings'
 import type {AppSettings} from '@/db/types'
+import {clearUiState} from '@/db/ui-state'
 import {trimFeedPosts} from '@/db/posts'
 import {syncActionBadge} from '@/background/badge'
 import {useSettings} from '../hooks/use-settings'
@@ -53,6 +54,9 @@ export function GeneralSettings() {
         await setSetting(key, value)
         if (key === 'refreshInterval') {
             await sendCommand({type: 'worker:reschedule'})
+        }
+        if (key === 'persistUiState' && value === false) {
+            await clearUiState()
         }
     }
 
@@ -154,7 +158,10 @@ export function GeneralSettings() {
                         onChange={(event) => void update('markReadOnOpen', event.target.checked)}
                     />
                 </Field>
-                <Field label="Start view" description="The view shown when the popup opens.">
+                <Field
+                    label="Start view"
+                    description="Used when there is no saved app state to restore."
+                >
                     <select
                         aria-label="Start view"
                         className={selectClass}
@@ -167,6 +174,20 @@ export function GeneralSettings() {
                         <option value="unread">Unread</option>
                         <option value="starred">Starred</option>
                     </select>
+                </Field>
+                <Field
+                    label="Remember app state"
+                    description="Reopen on your last view, including collapsed folders and the open post."
+                >
+                    <input
+                        type="checkbox"
+                        aria-label="Remember app state"
+                        className="size-4 accent-primary"
+                        checked={settings.persistUiState}
+                        onChange={(event) =>
+                            void update('persistUiState', event.target.checked)
+                        }
+                    />
                 </Field>
             </section>
         </div>

@@ -66,6 +66,7 @@ export interface AppSettings {
     notifications: boolean
     markReadOnOpen: boolean
     startView: 'all' | 'unread' | 'starred'
+    persistUiState: boolean
 }
 
 export type SettingKey = keyof AppSettings

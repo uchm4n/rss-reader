@@ -1,5 +1,9 @@
 import {describe, expect, it} from 'vitest'
-import {selectionKey, selectionTitle} from '../src/shared/model/selection'
+import {
+    parseSelectionValue,
+    selectionKey,
+    selectionTitle
+} from '../src/shared/model/selection'
 
 const feed = (id: string, title: string) => ({id, title})
 const folder = (id: string, name: string) => ({id, name})
@@ -25,5 +29,28 @@ describe('selection', () => {
     expect(selectionTitle({kind: 'folder', folderId: '2'}, [folder('2', 'Tech')], [])).toBe(
       'Tech'
     )
+  })
+
+  it('parses a stored selection value', () => {
+    expect(parseSelectionValue({kind: 'feed', feedId: '1'})).toEqual({
+      kind: 'feed',
+      feedId: '1'
+    })
+    expect(parseSelectionValue({kind: 'folder', folderId: '2'})).toEqual({
+      kind: 'folder',
+      folderId: '2'
+    })
+    expect(parseSelectionValue({kind: 'search', query: 'rust'})).toEqual({
+      kind: 'search',
+      query: 'rust'
+    })
+    expect(parseSelectionValue({kind: 'all'})).toEqual({kind: 'all'})
+  })
+
+  it('rejects invalid stored selection values', () => {
+    expect(parseSelectionValue(null)).toBeNull()
+    expect(parseSelectionValue({kind: 'nope'})).toBeNull()
+    expect(parseSelectionValue({kind: 'feed', feedId: ''})).toBeNull()
+    expect(parseSelectionValue({kind: 'folder', folderId: 7})).toBeNull()
   })
 })

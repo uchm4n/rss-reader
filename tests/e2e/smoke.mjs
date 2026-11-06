@@ -662,12 +662,18 @@ async function main() {
       select.value = 'starred'
       select.dispatchEvent(new Event('change', {bubbles: true}))
     })()`)
+    await waitFor(
+      () => evaluate(`Boolean(document.querySelector('input[aria-label="Remember app state"]'))`),
+      'remember app state setting did not render'
+    )
+    await evaluate(`document.querySelector('input[aria-label="Remember app state"]')?.click()`)
     await waitFor(async () => {
       const settings = await dbAll('settings')
       return (
         settings.find((row) => row.key === 'theme')?.value === 'dark' &&
         settings.find((row) => row.key === 'refreshInterval')?.value === 300 &&
-        settings.find((row) => row.key === 'startView')?.value === 'starred'
+        settings.find((row) => row.key === 'startView')?.value === 'starred' &&
+        settings.find((row) => row.key === 'persistUiState')?.value === true
       )
     }, 'settings did not persist')
 
@@ -712,6 +718,89 @@ async function main() {
       )
       view?.click()
     })()`)
+
+    console.log('9c. restore app state')
+    await evaluate(`(() => {
+      const folder = [...document.querySelectorAll('aside button')].find((candidate) =>
+        candidate.textContent?.includes('Tech / Nested')
+      )
+      folder?.click()
+    })()`)
+    await waitFor(
+      () => evaluate(`!document.querySelector('aside')?.innerText.includes('Fixture Atom')`),
+      'folder did not collapse'
+    )
+    await evaluate(`(() => {
+      const feed = [...document.querySelectorAll('aside button')].find((candidate) =>
+        candidate.textContent?.includes('Fixture RSS')
+      )
+      feed?.click()
+    })()`)
+    await waitFor(
+      () => evaluate(`[...document.querySelectorAll('button[aria-current="page"]')].some((button) => button.textContent?.includes('Fixture RSS'))`),
+      'feed was not selected'
+    )
+    await waitFor(
+      () => evaluate(`[...document.querySelectorAll('button')].some((candidate) => candidate.textContent?.includes('RSS One'))`),
+      'feed posts did not render'
+    )
+    await evaluate(`(() => {
+      const post = [...document.querySelectorAll('button')].find((candidate) =>
+        candidate.textContent?.includes('RSS One')
+      )
+      post?.click()
+    })()`)
+    await waitFor(
+      () => evaluate(`Boolean(document.querySelector('button[aria-label="Back to posts"]'))`),
+      'post reader did not open'
+    )
+    await waitFor(async () => {
+      const saved = (await dbAll('settings')).find((row) => row.key === 'uiState')?.value
+      return (
+        saved?.selection?.kind === 'feed' &&
+        Boolean(saved.selection.feedId) &&
+        saved.collapsedFolderIds?.length === 1 &&
+        Boolean(saved.openPostId)
+      )
+    }, 'app state was not saved')
+
+    await popup.send('Page.reload', {ignoreCache: true})
+    await waitFor(
+      () => evaluate(`Boolean(document.querySelector('button[aria-label="Back to posts"]'))`),
+      'open post was not restored'
+    )
+    await waitFor(
+      () => evaluate(`[...document.querySelectorAll('button[aria-current="page"]')].some((button) => button.textContent?.includes('Fixture RSS'))`),
+      'selected feed was not restored'
+    )
+    assert(
+      await evaluate(`!document.querySelector('aside')?.innerText.includes('Fixture Atom')`),
+      'collapsed folder was not restored'
+    )
+    assert(
+      (await evaluate(`document.querySelector('article h1')?.textContent`)) === 'RSS One',
+      'restored post is not the one that was open'
+    )
+    console.log('   view, collapsed folder and open post survived reload')
+
+    await evaluate(`document.querySelector('button[aria-label="Open settings"]')?.click()`)
+    await waitFor(
+      () => evaluate(`Boolean(document.querySelector('input[aria-label="Remember app state"]'))`),
+      'remember app state setting did not render'
+    )
+    await evaluate(`document.querySelector('input[aria-label="Remember app state"]')?.click()`)
+    await waitFor(async () => {
+      const settings = await dbAll('settings')
+      return (
+        settings.find((row) => row.key === 'persistUiState')?.value === false &&
+        !settings.some((row) => row.key === 'uiState')
+      )
+    }, 'disabling restore did not clear saved state')
+    await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
+    await waitFor(
+      () => evaluate(`Boolean(document.querySelector('select[aria-label="Theme"]')) === false`),
+      'did not return to the reader after disabling restore'
+    )
 
     console.log('10. reload offline')
     await fixture.close()

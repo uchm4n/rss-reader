@@ -6,6 +6,29 @@ export type Selection =
     | { kind: 'folder'; folderId: string }
     | { kind: 'search'; query: string }
 
+export function parseSelectionValue(value: unknown): Selection | null {
+    if (typeof value !== 'object' || value === null) return null
+    const parsed = value as Record<string, unknown>
+
+    if (parsed.kind === 'all' || parsed.kind === 'unread' || parsed.kind === 'starred') {
+        return {kind: parsed.kind}
+    }
+
+    if (parsed.kind === 'feed' && typeof parsed.feedId === 'string' && parsed.feedId) {
+        return {kind: 'feed', feedId: parsed.feedId}
+    }
+
+    if (parsed.kind === 'folder' && typeof parsed.folderId === 'string' && parsed.folderId) {
+        return {kind: 'folder', folderId: parsed.folderId}
+    }
+
+    if (parsed.kind === 'search' && typeof parsed.query === 'string') {
+        return {kind: 'search', query: parsed.query}
+    }
+
+    return null
+}
+
 export function selectionKey(selection: Selection): string {
     switch (selection.kind) {
         case 'all':

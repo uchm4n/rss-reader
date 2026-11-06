@@ -1,16 +1,18 @@
 import Dexie, {type Table} from 'dexie'
-import type {AppSettings, Feed, Folder, Post, SettingKey} from './types'
+import type {Feed, Folder, Post, SettingKey} from './types'
+
+export const UI_STATE_SETTING_KEY = 'uiState'
 
 export interface SettingRow {
-    key: SettingKey
-    value: AppSettings[SettingKey]
+    key: SettingKey | typeof UI_STATE_SETTING_KEY
+    value: unknown
 }
 
 export class RssReaderDB extends Dexie {
     feeds!: Table<Feed, string>
     folders!: Table<Folder, string>
     posts!: Table<Post, string>
-    settings!: Table<SettingRow, SettingKey>
+    settings!: Table<SettingRow, SettingRow['key']>
 
     constructor() {
         super('rss-reader')

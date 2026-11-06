@@ -7,7 +7,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
     retentionPerFeed: 200,
     notifications: false,
     markReadOnOpen: true,
-    startView: 'all'
+    startView: 'all',
+    persistUiState: false
 }
 
 export async function getSettings(): Promise<AppSettings> {
