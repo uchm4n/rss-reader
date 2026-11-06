@@ -666,14 +666,16 @@ async function main() {
       () => evaluate(`Boolean(document.querySelector('input[aria-label="Remember app state"]'))`),
       'remember app state setting did not render'
     )
-    await evaluate(`document.querySelector('input[aria-label="Remember app state"]')?.click()`)
+    assert(
+      await evaluate(`document.querySelector('input[aria-label="Remember app state"]')?.checked === true`),
+      'remember app state should default on'
+    )
     await waitFor(async () => {
       const settings = await dbAll('settings')
       return (
         settings.find((row) => row.key === 'theme')?.value === 'dark' &&
         settings.find((row) => row.key === 'refreshInterval')?.value === 300 &&
-        settings.find((row) => row.key === 'startView')?.value === 'starred' &&
-        settings.find((row) => row.key === 'persistUiState')?.value === true
+        settings.find((row) => row.key === 'startView')?.value === 'starred'
       )
     }, 'settings did not persist')
 
