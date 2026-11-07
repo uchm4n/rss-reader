@@ -117,7 +117,13 @@ export function renderRedditCard(card: RedditCard): string {
     let media = ''
 
     if (card.kind === 'video') {
-        media = `<div class="reddit-media"><iframe src="https://www.reddit.com/mediaembed/${escapeAttr(card.postId)}" title="Reddit video" loading="lazy"></iframe></div>`
+        const poster = card.thumbnailUrl
+            ? `<img class="reddit-video-poster" src="${escapeAttr(card.thumbnailUrl)}" alt="">`
+            : ''
+        const mediaClass = card.thumbnailUrl
+            ? 'reddit-media'
+            : 'reddit-media reddit-media-square'
+        media = `<div class="${mediaClass}">${poster}<iframe src="https://www.reddit.com/mediaembed/${escapeAttr(card.postId)}" title="Reddit video" loading="lazy"></iframe></div>`
     } else if (card.kind === 'image') {
         const image = card.imageUrl ?? card.thumbnailUrl
         if (image) {

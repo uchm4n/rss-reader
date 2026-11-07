@@ -106,10 +106,16 @@ describe('parseRedditCard', () => {
 describe('renderRedditContent', () => {
   it('renders a video card with the media-only player and no title', () => {
     const html = renderRedditContent(VIDEO_CARD)
+    if (!html) throw new Error('Expected a Reddit card')
 
     expect(html).toContain('class="reddit-card"')
     expect(html).toContain(
       'src="https://www.reddit.com/mediaembed/1wen3tq"'
+    )
+    expect(html).toContain('class="reddit-video-poster"')
+    expect(html).toContain('src="https://external-preview.redd.it/Z3dmN3A1')
+    expect(html.indexOf('reddit-video-poster')).toBeLessThan(
+      html.indexOf('<iframe')
     )
     expect(html).toContain('Even AI couldn')
     expect(html).toContain('u/cesam1ne')
@@ -118,6 +124,14 @@ describe('renderRedditContent', () => {
     expect(html).not.toContain('submitted by')
     expect(html).not.toContain('redditmedia.com')
     expect(html).not.toContain('An actual footage from Slovenian highway')
+  })
+
+  it('uses a square fallback when a video card has no thumbnail', () => {
+    const html = renderRedditContent(card('https://v.redd.it/abc123', false))
+
+    expect(html).toContain('class="reddit-media reddit-media-square"')
+    expect(html).not.toContain('reddit-video-poster')
+    expect(html).toContain('<iframe')
   })
 
   it('renders an image card without an iframe', () => {
@@ -179,6 +193,9 @@ describe('renderPostContent with Reddit cards', () => {
     expect(container.querySelector('iframe')?.getAttribute('src')).toBe(
       'https://www.reddit.com/mediaembed/1wen3tq'
     )
+    expect(
+      container.querySelector('.reddit-video-poster')?.getAttribute('src')
+    ).toContain('external-preview.redd.it')
     expect(container.querySelector('table')).toBeNull()
     expect(container.textContent).not.toContain('submitted by')
     expect(container.textContent).toContain('Even AI couldn')
