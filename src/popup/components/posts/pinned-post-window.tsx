@@ -4,6 +4,13 @@ import {X} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
 import {Skeleton} from '@/components/ui/skeleton'
+import {
+    TOOLTIP_DELAY_MS,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger
+} from '@/components/ui/tooltip'
 import {db} from '@/db/db'
 import {useFeeds} from '../../hooks/use-feeds'
 import {useTheme} from '../../hooks/use-theme'
@@ -58,37 +65,44 @@ export function PinnedPostWindow({postId}: { postId: string }) {
     }, [post?.title])
 
     return (
-        <div className="flex h-screen min-h-0 flex-col bg-background text-foreground">
-            <header className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
-                <FeedIcon favicon={feed?.favicon ?? null} className="size-4"/>
-                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-                    {feed?.title || 'Pinned post'}
-                </span>
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={close}
-                    aria-label="Close pinned window"
-                    className="hover:bg-destructive/10 hover:text-destructive"
-                >
-                    <X className="size-4"/>
-                </Button>
-            </header>
+        <TooltipProvider delayDuration={TOOLTIP_DELAY_MS}>
+            <div className="flex h-screen min-h-0 flex-col bg-background text-foreground">
+                <header className="flex h-9 shrink-0 items-center gap-2 border-b px-3">
+                    <FeedIcon favicon={feed?.favicon ?? null} className="size-4"/>
+                    <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                        {feed?.title || 'Pinned post'}
+                    </span>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                onClick={close}
+                                aria-label="Close pinned window"
+                                className="hover:bg-destructive/10 hover:text-destructive"
+                            >
+                                <X className="size-4"/>
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Close</TooltipContent>
+                    </Tooltip>
+                </header>
 
-            {post === undefined ? (
-                <PinnedLoading/>
-            ) : post === null ? (
-                <PinnedMissing onClose={close}/>
-            ) : (
-                <ScrollArea
-                    className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!w-full">
-                    <PostArticle
-                        post={post}
-                        feed={feed}
-                        onOpenOriginal={openExternal}
-                    />
-                </ScrollArea>
-            )}
-        </div>
+                {post === undefined ? (
+                    <PinnedLoading/>
+                ) : post === null ? (
+                    <PinnedMissing onClose={close}/>
+                ) : (
+                    <ScrollArea
+                        className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!w-full">
+                        <PostArticle
+                            post={post}
+                            feed={feed}
+                            onOpenOriginal={openExternal}
+                        />
+                    </ScrollArea>
+                )}
+            </div>
+        </TooltipProvider>
     )
 }

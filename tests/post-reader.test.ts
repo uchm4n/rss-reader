@@ -12,7 +12,6 @@ function render(status: boolean): string {
       onBack: () => {},
       onOpenOriginal: () => {},
       onToggleStar: () => {},
-      onMarkRead: () => {},
       onMarkUnread: () => {},
       onPin: () => {}
     })
@@ -20,16 +19,14 @@ function render(status: boolean): string {
 }
 
 describe('ReaderHeader', () => {
-  it('offers mark read for an unread post', () => {
-    const html = render(false)
-    expect(html).toContain('Mark read')
-    expect(html).not.toContain('Mark unread')
-  })
-
-  it('offers mark unread for a read post', () => {
-    const html = render(true)
-    expect(html).toContain('Mark unread')
-    expect(html).not.toContain('Mark read')
+  it('always offers mark unread with an unread chat icon', () => {
+    for (const status of [false, true]) {
+      const html = render(status)
+      expect(html).toContain('aria-label="Mark unread"')
+      expect(html).not.toContain('aria-label="Mark read"')
+      expect(html).toContain('lucide-message-square-dot size-4')
+      expect(html).not.toContain('lucide-mail-open')
+    }
   })
 
   it('offers a pin action before the star', () => {
@@ -38,5 +35,13 @@ describe('ReaderHeader', () => {
     expect(html.indexOf('aria-label="Open pinned post"')).toBeLessThan(
       html.indexOf('aria-label="Star post"')
     )
+  })
+
+  it('renders icon-only actions', () => {
+    const html = render(false)
+    expect(html).not.toContain('>Mark read<')
+    expect(html).not.toContain('>Mark unread<')
+    expect(html).not.toContain('>Open original<')
+    expect(html).toContain('aria-label="Open original"')
   })
 })

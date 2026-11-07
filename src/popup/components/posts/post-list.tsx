@@ -1,7 +1,14 @@
 import {useMemo} from 'react'
-import {Inbox, Star} from 'lucide-react'
+import {Inbox, MailOpen, Star} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
+import {
+    TOOLTIP_DELAY_MS,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger
+} from '@/components/ui/tooltip'
 import type {Feed} from '@/db/types'
 import type {Selection} from '@/shared/model/selection'
 import {useFeeds} from '../../hooks/use-feeds'
@@ -74,15 +81,25 @@ export function PostList({selection, onOpenPost}: PostListProps) {
                     {posts.length} {posts.length === 1 ? 'post' : 'posts'}
                 </span>
                 {/* ponytail: marks the loaded view (up to 200); add a selection-wide query if older unread posts matter. */}
-                <Button
-                    variant="ghost"
-                    size="xs"
-                    disabled={!unreadIds.length}
-                    onClick={() => void markPostsRead(unreadIds)}
-                    className="hover:bg-brand/10 hover:text-brand"
-                >
-                    Mark all as read
-                </Button>
+                <TooltipProvider delayDuration={TOOLTIP_DELAY_MS}>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="inline-flex">
+                                <Button
+                                    variant="ghost"
+                                    size="xs"
+                                    disabled={!unreadIds.length}
+                                    onClick={() => void markPostsRead(unreadIds)}
+                                    aria-label="Mark all as read"
+                                    className="hover:bg-brand/10 hover:text-brand"
+                                >
+                                    <MailOpen className="size-4"/>
+                                </Button>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Mark all as read</TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
             </div>
             <ScrollArea className="min-h-0 flex-1">
                 <div className="divide-y">

@@ -1,8 +1,16 @@
+import type {ReactNode} from 'react'
 import {toast} from 'sonner'
-import {ArrowLeft, ExternalLink, Pin, Star} from 'lucide-react'
+import {ArrowLeft, ExternalLink, MessageSquareDot, Pin, Star} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
 import {Skeleton} from '@/components/ui/skeleton'
+import {
+    TOOLTIP_DELAY_MS,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger
+} from '@/components/ui/tooltip'
 import type {Feed, Post} from '@/db/types'
 import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../../hooks/use-feeds'
@@ -47,13 +55,41 @@ function ReaderSkeleton({onBack}: { onBack: () => void }) {
     )
 }
 
+function HeaderAction({
+                          label,
+                          onClick,
+                          className,
+                          children
+                      }: {
+    label: string
+    onClick: () => void
+    className: string
+    children: ReactNode
+}) {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onClick}
+                    aria-label={label}
+                    className={className}
+                >
+                    {children}
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{label}</TooltipContent>
+        </Tooltip>
+    )
+}
+
 export function ReaderHeader({
                                  post,
                                  feed,
                                  onBack,
                                  onOpenOriginal,
                                  onToggleStar,
-                                 onMarkRead,
                                  onMarkUnread,
                                  onPin
                              }: {
@@ -62,84 +98,65 @@ export function ReaderHeader({
     onBack: () => void
     onOpenOriginal: (url: string) => void
     onToggleStar: () => void
-    onMarkRead: () => void
     onMarkUnread: () => void
     onPin: () => void
 }) {
     return (
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-            <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={onBack}
-                aria-label="Back to posts"
-                className="hover:bg-brand/10 hover:text-brand"
-            >
-                <ArrowLeft className="size-4"/>
-            </Button>
-
-            <div className="flex min-w-0 items-center gap-2">
-                <FeedIcon favicon={feed?.favicon ?? null} className="size-4"/>
-                <span className="truncate text-xs text-muted-foreground">
-          {feed?.title || 'Post'}
-        </span>
-            </div>
-
-            <div className="ml-auto flex items-center gap-1">
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={onPin}
-                    aria-label="Open pinned post"
+        <TooltipProvider delayDuration={TOOLTIP_DELAY_MS}>
+            <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+                <HeaderAction
+                    label="Back to posts"
+                    onClick={onBack}
                     className="hover:bg-brand/10 hover:text-brand"
                 >
-                    <Pin className="size-4"/>
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={onToggleStar}
-                    aria-label={post.starred ? 'Unstar post' : 'Star post'}
-                    className="hover:bg-star/10 hover:text-star"
-                >
-                    <Star
-                        className={
-                            post.starred ? 'size-4 fill-current text-star' : 'size-4'
-                        }
-                    />
-                </Button>
-                {post.status ? (
-                    <Button
-                        variant="ghost"
-                        size="sm"
+                    <ArrowLeft className="size-4"/>
+                </HeaderAction>
+
+                <div className="flex min-w-0 items-center gap-2">
+                    <FeedIcon favicon={feed?.favicon ?? null} className="size-4"/>
+                    <span className="truncate text-xs text-muted-foreground">
+          {feed?.title || 'Post'}
+        </span>
+                </div>
+
+                <div className="ml-auto flex items-center gap-1">
+                    <HeaderAction
+                        label="Open pinned post"
+                        onClick={onPin}
+                        className="hover:bg-brand/10 hover:text-brand"
+                    >
+                        <Pin className="size-4"/>
+                    </HeaderAction>
+                    <HeaderAction
+                        label={post.starred ? 'Unstar post' : 'Star post'}
+                        onClick={onToggleStar}
+                        className="hover:bg-star/10 hover:text-star"
+                    >
+                        <Star
+                            className={
+                                post.starred ? 'size-4 fill-current text-star' : 'size-4'
+                            }
+                        />
+                    </HeaderAction>
+                    <HeaderAction
+                        label="Mark unread"
                         onClick={onMarkUnread}
                         className="hover:bg-brand/10 hover:text-brand"
                     >
-                        Mark unread
-                    </Button>
-                ) : (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={onMarkRead}
-                        className="hover:bg-brand/10 hover:text-brand"
-                    >
-                        Mark read
-                    </Button>
-                )}
-                {post.link ? (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onOpenOriginal(post.link!)}
-                        className="hover:bg-refresh/10 hover:text-refresh"
-                    >
-                        <ExternalLink className="size-4"/>
-                        Open original
-                    </Button>
-                ) : null}
+                        <MessageSquareDot className="size-4"/>
+                    </HeaderAction>
+                    {post.link ? (
+                        <HeaderAction
+                            label="Open original"
+                            onClick={() => onOpenOriginal(post.link!)}
+                            className="hover:bg-refresh/10 hover:text-refresh"
+                        >
+                            <ExternalLink className="size-4"/>
+                        </HeaderAction>
+                    ) : null}
+                </div>
             </div>
-        </div>
+        </TooltipProvider>
     )
 }
 
@@ -197,10 +214,6 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
 
     if (!post) return <ReaderSkeleton onBack={onBack}/>
 
-    const markRead = async () => {
-        await setPostStatus(post.id, true)
-    }
-
     const markUnread = async () => {
         await setPostStatus(post.id, false)
         onBack()
@@ -222,7 +235,6 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
                 onBack={onBack}
                 onOpenOriginal={onOpenOriginal}
                 onToggleStar={() => void togglePostStar(post.id)}
-                onMarkRead={() => void markRead()}
                 onMarkUnread={() => void markUnread()}
                 onPin={pin}
             />

@@ -210,6 +210,12 @@ async function main() {
     popup = await openPopup(port, `chrome-extension://${extensionId}/action/index.html`)
     await popup.send('Runtime.enable')
     await popup.send('Page.enable')
+    await popup.send('Emulation.setDeviceMetricsOverride', {
+      width: 800,
+      height: 600,
+      deviceScaleFactor: 1,
+      mobile: false
+    })
     assert(
       await popup.evaluate('chrome?.runtime?.id'),
       'Extension popup did not load; the extension ID may be wrong'
@@ -329,6 +335,35 @@ async function main() {
     await waitFor(async () => (await badge()) === '', 'badge did not clear after reading')
 
     console.log('3a. pin the open post')
+    const pinPoint = await evaluate(`(() => {
+      const button = document.querySelector('button[aria-label="Open pinned post"]')
+      const rect = button.getBoundingClientRect()
+      return {x: rect.x + rect.width / 2, y: rect.y + rect.height / 2}
+    })()`)
+    await popup.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: pinPoint.x,
+      y: pinPoint.y
+    })
+    await sleep(650)
+    assert(
+      (await evaluate(`document.querySelector('[data-slot="tooltip-content"]')?.textContent`)) ===
+        'Open pinned post',
+      'pin tooltip did not appear after the delay'
+    )
+    const tooltipBox = await evaluate(`(() => {
+      const element = document.querySelector('[data-slot="tooltip-content"]')
+      if (!element) return null
+      const rect = element.getBoundingClientRect()
+      return {x: rect.x, y: rect.y, width: rect.width, height: rect.height}
+    })()`)
+    assert(
+      tooltipBox &&
+        tooltipBox.y >= 0 &&
+        tooltipBox.y < 600 &&
+        Math.abs(tooltipBox.x + tooltipBox.width / 2 - pinPoint.x) < 4,
+      'pin tooltip was not anchored to its button'
+    )
     await evaluate(`document.querySelector('button[aria-label="Open pinned post"]')?.click()`)
     const pinnedTarget = await waitFor(async () => {
       const list = await targets(port)
@@ -417,19 +452,29 @@ async function main() {
     }, 'new unread post did not arrive')
     await waitFor(
       () => evaluate(`(() => {
-        const button = [...document.querySelectorAll('button')].find((candidate) =>
-          candidate.textContent?.trim() === 'Mark all as read'
-        )
+        const button = document.querySelector('button[aria-label="Mark all as read"]')
         return Boolean(button && !button.disabled)
       })()`),
       'mark-all button was not enabled'
     )
-    await evaluate(`(() => {
-      const button = [...document.querySelectorAll('button')].find((candidate) =>
-        candidate.textContent?.trim() === 'Mark all as read'
-      )
-      button?.click()
+    const markAllPoint = await evaluate(`(() => {
+      const button = document.querySelector('button[aria-label="Mark all as read"]')
+      const rect = button.getBoundingClientRect()
+      return {x: rect.x + rect.width / 2, y: rect.y + rect.height / 2}
     })()`)
+    await popup.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: markAllPoint.x,
+      y: markAllPoint.y
+    })
+    await waitFor(
+      () => evaluate(`[...document.querySelectorAll('[data-slot="tooltip-content"]')].some((element) => element.textContent === 'Mark all as read')`),
+      'mark-all tooltip did not appear after the delay',
+      3_000
+    )
+    await evaluate(
+      `document.querySelector('button[aria-label="Mark all as read"]')?.click()`
+    )
     await waitFor(async () => {
       const posts = await dbAll('posts')
       return posts.every((post) => post.status) && (await badge()) === ''

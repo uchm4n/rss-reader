@@ -2,6 +2,8 @@ import * as React from "react"
 import {cn} from "cn"
 import {Tooltip as TooltipPrimitive} from "radix-ui"
 
+export const TOOLTIP_DELAY_MS = 500
+
 function TooltipProvider({
                              delayDuration = 0,
                              ...props

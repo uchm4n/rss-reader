@@ -28,7 +28,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 - First fetch imports existing entries as read; later fetches add new ones as unread.
 - Each feed retains the newest 200 posts by default (configurable); aggregate views cap at 200.
 - Feeds refresh on a dynamic alarm (15min default); failures back off exponentially up to 1 hour.
-- Media is responsive: most images/video cap at 60vh, native controls, sandboxed iframes, no autoplay. The Reddit video card sizes itself from the post thumbnail (capped at square), so portrait videos are not clipped.
+- Media is responsive: most images/video cap at 60vh, native controls, sandboxed iframes, no autoplay.
 - Pin a post (pin icon before the star) to open it in a separate resizable window that stays open. It opens as a normal 600×700 window near the popup, keeps only the article, and has a slim header with an X to close it. One window per post; pinning the same post again focuses its existing window.
 - With **Remember app state** enabled, the popup reopens on the last view, with collapsed folders and the open post restored.
 
