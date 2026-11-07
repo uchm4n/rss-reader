@@ -13,7 +13,8 @@ function render(status: boolean): string {
       onOpenOriginal: () => {},
       onToggleStar: () => {},
       onMarkRead: () => {},
-      onMarkUnread: () => {}
+      onMarkUnread: () => {},
+      onPin: () => {}
     })
   )
 }
@@ -29,5 +30,13 @@ describe('ReaderHeader', () => {
     const html = render(true)
     expect(html).toContain('Mark unread')
     expect(html).not.toContain('Mark read')
+  })
+
+  it('offers a pin action before the star', () => {
+    const html = render(false)
+    expect(html).toContain('aria-label="Open pinned post"')
+    expect(html.indexOf('aria-label="Open pinned post"')).toBeLessThan(
+      html.indexOf('aria-label="Star post"')
+    )
   })
 })

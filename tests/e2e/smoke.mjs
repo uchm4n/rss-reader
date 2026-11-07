@@ -327,6 +327,52 @@ async function main() {
       return posts.find((post) => post.title === 'New RSS item 1')?.status === true
     }, 'opening the item did not mark it read')
     await waitFor(async () => (await badge()) === '', 'badge did not clear after reading')
+
+    console.log('3a. pin the open post')
+    await evaluate(`document.querySelector('button[aria-label="Open pinned post"]')?.click()`)
+    const pinnedTarget = await waitFor(async () => {
+      const list = await targets(port)
+      return list.find((target) => target.url.includes('?pinnedPost=')) ?? false
+    }, 'pinned window did not open')
+    const pinned = await Cdp.connect(pinnedTarget.webSocketDebuggerUrl)
+    await pinned.send('Runtime.enable')
+    await pinned.send('Page.enable')
+    const pinnedEval = (expression) => pinned.evaluate(expression)
+    await waitFor(
+      () => pinnedEval(`document.querySelector('article h1')?.textContent === 'New RSS item 1'`),
+      'pinned window did not render the post'
+    )
+    assert(
+      await pinnedEval(`!document.querySelector('aside') && !document.body.innerText.includes('Search all feeds')`),
+      'pinned window rendered app chrome'
+    )
+    assert(
+      await pinnedEval(`Boolean(document.querySelector('button[aria-label="Close pinned window"]'))`),
+      'pinned window close button missing'
+    )
+    const pinnedWindow = await pinnedEval(
+      `chrome.windows.getCurrent().then((win) => ({id: win.id, state: win.state, left: win.left, top: win.top, width: win.width, height: win.height}))`
+    )
+    assert(pinnedWindow.state === 'normal', 'pinned window did not open as a normal window')
+    assert(pinnedWindow.width === 600, 'pinned window did not use its normal width')
+    const pinnedWindowId = pinnedWindow.id
+    await pinnedEval(
+      `chrome.windows.update(${pinnedWindowId}, {width: 700, height: 800})`
+    )
+    await waitFor(
+      () => pinnedEval(`window.innerWidth === 700`),
+      'pinned window did not resize'
+    )
+    await pinnedEval(
+      `document.querySelector('button[aria-label="Close pinned window"]')?.click()`
+    )
+    await waitFor(async () => {
+      const list = await targets(port)
+      return !list.some((target) => target.url.includes('?pinnedPost='))
+    }, 'pinned window did not close')
+    pinned.close()
+    console.log('   pinned post window opened, resized and closed')
+
     await evaluate(`document.querySelector('button[aria-label="Back to posts"]')?.click()`)
 
     const starred = await evaluate(`(() => {

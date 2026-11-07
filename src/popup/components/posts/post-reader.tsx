@@ -1,4 +1,5 @@
-import {ArrowLeft, ExternalLink, Star} from 'lucide-react'
+import {toast} from 'sonner'
+import {ArrowLeft, ExternalLink, Pin, Star} from 'lucide-react'
 import {Button} from '@/components/ui/button'
 import {ScrollArea} from '@/components/ui/scroll-area'
 import {Skeleton} from '@/components/ui/skeleton'
@@ -7,6 +8,7 @@ import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../../hooks/use-feeds'
 import {usePost} from '../../hooks/use-post'
 import {setPostStatus, togglePostStar} from '../../hooks/use-post-actions'
+import {openPinnedPost} from '../../lib/pinned-post'
 import {FeedIcon} from './feed-icon'
 import {PostBody} from './post-body'
 
@@ -52,7 +54,8 @@ export function ReaderHeader({
                                  onOpenOriginal,
                                  onToggleStar,
                                  onMarkRead,
-                                 onMarkUnread
+                                 onMarkUnread,
+                                 onPin
                              }: {
     post: Post
     feed?: Feed
@@ -61,6 +64,7 @@ export function ReaderHeader({
     onToggleStar: () => void
     onMarkRead: () => void
     onMarkUnread: () => void
+    onPin: () => void
 }) {
     return (
         <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
@@ -82,6 +86,15 @@ export function ReaderHeader({
             </div>
 
             <div className="ml-auto flex items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onPin}
+                    aria-label="Open pinned post"
+                    className="hover:bg-brand/10 hover:text-brand"
+                >
+                    <Pin className="size-4"/>
+                </Button>
                 <Button
                     variant="ghost"
                     size="icon-sm"
@@ -130,6 +143,53 @@ export function ReaderHeader({
     )
 }
 
+export function PostArticle({
+                                post,
+                                feed,
+                                onOpenOriginal
+                            }: {
+    post: Post
+    feed?: Feed
+    onOpenOriginal: (url: string) => void
+}) {
+    return (
+        <article className="mx-auto w-full min-w-0 max-w-2xl px-6 py-5">
+            <h1 className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">
+                {post.title}
+            </h1>
+            <div
+                className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
+                <span>{formatRelativeTime(new Date(post.publishedAt))}</span>
+                {feed?.title ? (
+                    <>
+                        <span aria-hidden="true">·</span>
+                        <span>{feed.title}</span>
+                    </>
+                ) : null}
+            </div>
+
+            {post.contentHtml ? (
+                <div className="mt-5 min-w-0">
+                    <PostBody
+                        content={post.contentHtml}
+                        contentType={post.contentType}
+                        imageUrl={post.imageUrl}
+                    />
+                </div>
+            ) : (
+                <div className="mt-5 space-y-4">
+                    <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
+                        {post.excerpt || 'No content available for this post.'}
+                    </p>
+                    {post.link ? (
+                        <Button onClick={() => onOpenOriginal(post.link!)}>Read on site</Button>
+                    ) : null}
+                </div>
+            )}
+        </article>
+    )
+}
+
 export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
     const post = usePost(postId)
     const feeds = useFeeds()
@@ -146,6 +206,14 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
         onBack()
     }
 
+    const pin = () => {
+        void openPinnedPost(post.id).catch((error) => {
+            toast.error(
+                error instanceof Error ? error.message : 'Could not open pinned window'
+            )
+        })
+    }
+
     return (
         <div className="flex h-full min-w-0 flex-col">
             <ReaderHeader
@@ -156,43 +224,11 @@ export function PostReader({postId, onBack, onOpenOriginal}: PostReaderProps) {
                 onToggleStar={() => void togglePostStar(post.id)}
                 onMarkRead={() => void markRead()}
                 onMarkUnread={() => void markUnread()}
+                onPin={pin}
             />
             <ScrollArea
                 className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!w-full">
-                <article className="mx-auto w-full min-w-0 max-w-2xl px-6 py-5">
-                    <h1 className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">
-                        {post.title}
-                    </h1>
-                    <div
-                        className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
-                        <span>{formatRelativeTime(new Date(post.publishedAt))}</span>
-                        {feed?.title ? (
-                            <>
-                                <span aria-hidden="true">·</span>
-                                <span>{feed.title}</span>
-                            </>
-                        ) : null}
-                    </div>
-
-                    {post.contentHtml ? (
-                        <div className="mt-5 min-w-0">
-                            <PostBody
-                                content={post.contentHtml}
-                                contentType={post.contentType}
-                                imageUrl={post.imageUrl}
-                            />
-                        </div>
-                    ) : (
-                        <div className="mt-5 space-y-4">
-                            <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
-                                {post.excerpt || 'No content available for this post.'}
-                            </p>
-                            {post.link ? (
-                                <Button onClick={() => onOpenOriginal(post.link!)}>Read on site</Button>
-                            ) : null}
-                        </div>
-                    )}
-                </article>
+                <PostArticle post={post} feed={feed} onOpenOriginal={onOpenOriginal}/>
             </ScrollArea>
         </div>
     )
