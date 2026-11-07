@@ -6,6 +6,7 @@ import {
     flattenHnComments,
     HN_ITEM_URL,
     HN_VISIBLE_COMMENTS,
+    visibleHnEntries,
     type HnComment,
     type HnThread
 } from '../../lib/hn-content'
@@ -45,16 +46,35 @@ function useHnThread(itemId: number): DiscussionState {
     return state
 }
 
-function HnCommentItem({comment, depth}: { comment: HnComment; depth: number }) {
+function HnCommentItem({ comment, depth, collapsed, onToggle }: {
+    comment: HnComment
+    depth: number
+    collapsed: boolean
+    onToggle: () => void
+}) {
     const text = comment.text?.trim()
     const indent = Math.min(depth, MAX_DEPTH_INDENT) * INDENT_PX
     const createdAt = comment.createdAt > 0 ? new Date(comment.createdAt) : null
+    const hasReplies = comment.children.length > 0
+    const className = depth === 0 ? 'hn-comment hn-comment-root' : 'hn-comment hn-comment-reply'
 
     return (
-        <article className="hn-comment" style={{marginLeft: `${indent}px`}}>
+        <article className={className} style={{marginLeft: `${indent}px`}}>
             <div className="hn-comment-meta">
+                {hasReplies ? (
+                    <button
+                        type="button"
+                        className="hn-comment-toggle"
+                        onClick={onToggle}
+                        aria-expanded={!collapsed}
+                        aria-label={collapsed ? 'Expand replies' : 'Collapse replies'}
+                    >
+                        {collapsed ? '[+]' : '[-]'}
+                    </button>
+                ) : null}
                 {comment.author ? (
                     <a
+                        className="hn-comment-author"
                         href={`${HN_USER_URL}${encodeURIComponent(comment.author)}`}
                         target="_blank"
                         rel="noreferrer noopener"
@@ -96,9 +116,23 @@ export function HnThreadView({
     initialLimit?: number
 }) {
     const [visible, setVisible] = useState(initialLimit)
+    const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set())
     const entries = useMemo(() => flattenHnComments(thread.comments), [thread.comments])
-    const shown = entries.slice(0, visible)
-    const remaining = entries.length - shown.length
+    const visibleEntries = useMemo(
+        () => visibleHnEntries(entries, collapsed),
+        [entries, collapsed]
+    )
+    const shown = visibleEntries.slice(0, visible)
+    const remaining = visibleEntries.length - shown.length
+
+    const toggle = (id: number) => {
+        setCollapsed((current) => {
+            const next = new Set(current)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
 
     return (
         <section className="hn-discussion" aria-label="Hacker News discussion">
@@ -126,7 +160,13 @@ export function HnThreadView({
             {entries.length ? (
                 <div className="hn-comments">
                     {shown.map(({comment, depth}) => (
-                        <HnCommentItem key={comment.id} comment={comment} depth={depth}/>
+                        <HnCommentItem
+                            key={comment.id}
+                            comment={comment}
+                            depth={depth}
+                            collapsed={collapsed.has(comment.id)}
+                            onToggle={() => toggle(comment.id)}
+                        />
                     ))}
                 </div>
             ) : (

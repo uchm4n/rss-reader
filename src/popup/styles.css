@@ -723,6 +723,14 @@ body {
 
 .hn-comment {
     min-width: 0;
+}
+
+.hn-comment-root:not(:first-child) {
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+}
+
+.hn-comment-reply {
     padding-left: 0.75rem;
     border-left: 2px solid var(--border);
 }
@@ -742,6 +750,27 @@ body {
 
 .hn-comment-meta a:hover {
     text-decoration: underline;
+}
+
+.hn-comment-toggle {
+    flex: none;
+    margin: -0.1rem 0 -0.1rem -0.2rem;
+    padding: 0.1rem 0.2rem;
+    border: 0;
+    background: none;
+    color: var(--muted-foreground);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.hn-comment-toggle:hover {
+    color: var(--foreground);
+}
+
+.hn-comment-meta .hn-comment-author {
+    color: var(--foreground);
+    font-weight: 500;
 }
 
 .hn-comment-body {

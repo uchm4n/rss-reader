@@ -82,6 +82,29 @@ describe('HnThreadView', () => {
     expect(html).toContain(
       'href="https://news.ycombinator.com/item?id=50406862"'
     )
+    expect(html).toContain('class="hn-comment-author"')
+  })
+
+  it('offers a fold control only on comments with replies', () => {
+    const html = renderThread()
+
+    expect(html).toContain('aria-label="Collapse replies"')
+    expect(html).toContain('aria-expanded="true"')
+    expect(html).toContain('[-]')
+    expect((html.match(/aria-label="Collapse replies"/g) ?? []).length).toBe(1)
+  })
+
+  it('omits the fold control for a leaf comment', () => {
+    const leaf = parseHnThread({
+      id: 1,
+      children: [{id: 2, author: 'x', text: 'hi', children: []}]
+    }) as HnThread
+
+    const html = renderToStaticMarkup(
+      React.createElement(HnThreadView, {thread: leaf})
+    )
+
+    expect(html).not.toContain('aria-label="Collapse replies"')
   })
 
   it('caps the visible comments and offers the rest', () => {

@@ -147,6 +147,31 @@ export function flattenHnComments(comments: HnComment[]): HnEntry[] {
     return entries
 }
 
+export function visibleHnEntries(
+    entries: HnEntry[],
+    collapsed: ReadonlySet<number>
+): HnEntry[] {
+    const visible: HnEntry[] = []
+    const hiddenDepths: number[] = []
+
+    for (const entry of entries) {
+        while (
+            hiddenDepths.length > 0 &&
+            hiddenDepths[hiddenDepths.length - 1] >= entry.depth
+        ) {
+            hiddenDepths.pop()
+        }
+        if (hiddenDepths.length > 0) continue
+
+        visible.push(entry)
+        if (collapsed.has(entry.comment.id) && entry.comment.children.length > 0) {
+            hiddenDepths.push(entry.depth)
+        }
+    }
+
+    return visible
+}
+
 export interface FetchHnThreadOptions {
     signal?: AbortSignal
     fetchImpl?: typeof fetch
