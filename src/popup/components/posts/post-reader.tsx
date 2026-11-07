@@ -16,8 +16,10 @@ import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../../hooks/use-feeds'
 import {usePost} from '../../hooks/use-post'
 import {setPostStatus, togglePostStar} from '../../hooks/use-post-actions'
+import {hnItemId, isHnCommentsOnly} from '../../lib/hn-content'
 import {openPinnedPost} from '../../lib/pinned-post'
 import {FeedIcon} from './feed-icon'
+import {HnDiscussion} from './hn-discussion'
 import {PostBody} from './post-body'
 
 interface PostReaderProps {
@@ -169,6 +171,9 @@ export function PostArticle({
     feed?: Feed
     onOpenOriginal: (url: string) => void
 }) {
+    const hnId = hnItemId(post)
+    const commentsOnly = hnId !== null && isHnCommentsOnly(post.contentHtml)
+
     return (
         <article className="mx-auto w-full min-w-0 max-w-2xl px-6 py-5">
             <h1 className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">
@@ -185,7 +190,7 @@ export function PostArticle({
                 ) : null}
             </div>
 
-            {post.contentHtml ? (
+            {post.contentHtml && !commentsOnly ? (
                 <div className="mt-5 min-w-0">
                     <PostBody
                         content={post.contentHtml}
@@ -193,7 +198,7 @@ export function PostArticle({
                         imageUrl={post.imageUrl}
                     />
                 </div>
-            ) : (
+            ) : hnId === null ? (
                 <div className="mt-5 space-y-4">
                     <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
                         {post.excerpt || 'No content available for this post.'}
@@ -202,7 +207,9 @@ export function PostArticle({
                         <Button onClick={() => onOpenOriginal(post.link!)}>Read on site</Button>
                     ) : null}
                 </div>
-            )}
+            ) : null}
+
+            {hnId !== null ? <HnDiscussion key={hnId} itemId={hnId}/> : null}
         </article>
     )
 }
