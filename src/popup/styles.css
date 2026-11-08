@@ -684,6 +684,63 @@ body {
     text-decoration: underline;
 }
 
+.post-content .media-card {
+    position: relative;
+    display: block;
+    max-width: 100%;
+    max-height: 60vh;
+    margin: 1.1rem auto;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: #000;
+    aspect-ratio: 16 / 9;
+    text-decoration: none;
+}
+
+.post-content .media-card img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    border-radius: 0;
+    background: #000;
+    object-fit: cover;
+}
+
+.media-card-play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-size: 2.25rem;
+    line-height: 1;
+    text-shadow: 0 1px 8px rgb(0 0 0 / 70%);
+    background: rgb(0 0 0 / 12%);
+    transition: background 150ms ease;
+}
+
+.media-card:hover .media-card-play {
+    background: rgb(0 0 0 / 28%);
+}
+
+.media-card-label {
+    position: absolute;
+    bottom: 0.5rem;
+    left: 0.6rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 60%);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.media-card-no-thumb {
+    background: linear-gradient(135deg, #1f1f1f, #3a0d0d);
+}
+
 .hn-discussion {
     min-width: 0;
     margin-top: 1.5rem;

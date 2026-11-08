@@ -1,6 +1,7 @@
 import {marked} from 'marked'
 import type {ContentFormat} from '@/shared/model/post'
-import {normalizeEmbedUrl} from './embed'
+import {normalizeEmbedUrl, type SafeEmbed} from './embed'
+import {createMediaCard} from './media-card'
 import {renderRedditContent} from './reddit-content'
 import {sanitizePostHtml} from './sanitize'
 
@@ -207,17 +208,39 @@ export function enhancePostHtml(html: string): string {
         if (src) seenMedia.add(src)
     }
 
+    const seenCards = new Set<string>()
+    for (const iframe of root.querySelectorAll('iframe')) {
+        const embed = normalizeEmbedUrl(iframe.getAttribute('src'))
+        if (!embed || embed.mode !== 'link') continue
+        if (seenCards.has(embed.url)) {
+            iframe.remove()
+            continue
+        }
+        seenCards.add(embed.url)
+        iframe.replaceWith(createMediaCard(embed))
+    }
+
+    type CandidateMedia =
+        | { kind: 'card'; embed: SafeEmbed }
+        | { kind: 'embed'; embed: SafeEmbed }
+
     const candidates = new Map<
         Element,
-        {embed?: string; video?: string; anchor?: Element}
+        { media?: CandidateMedia; video?: string; anchor?: Element }
     >()
     for (const anchor of root.querySelectorAll('a[href]')) {
         const href = anchor.getAttribute('href')
         if (!href) continue
-        if (anchor.closest('.reddit-card')) continue
+
+        const inRedditCard = Boolean(anchor.closest('.reddit-card'))
+        const inRedditSummary = Boolean(anchor.closest('.reddit-summary'))
+        if (inRedditCard && !inRedditSummary) continue
+
+        const embed = normalizeEmbedUrl(href)
+        if (inRedditSummary && embed?.mode !== 'link') continue
 
         const block = insertionPoint(anchor)
-        if (block.querySelector('iframe, video')) continue
+        if (block.querySelector('iframe, video, .media-card')) continue
 
         const candidate = candidates.get(block) ?? {}
         const videoUrl = directVideoUrl(href)
@@ -228,12 +251,13 @@ export function enhancePostHtml(html: string): string {
             continue
         }
 
-        const embed = normalizeEmbedUrl(href)
-        if (embed && !candidate.embed) {
-            candidate.embed = embed.url
-            candidate.anchor = anchor
-            candidates.set(block, candidate)
-        }
+        if (!embed || candidate.media) continue
+
+        candidate.media = embed.mode === 'link'
+            ? {kind: 'card', embed}
+            : {kind: 'embed', embed}
+        candidate.anchor = anchor
+        candidates.set(block, candidate)
     }
 
     for (const [block, candidate] of candidates) {
@@ -250,14 +274,25 @@ export function enhancePostHtml(html: string): string {
             continue
         }
 
-        if (candidate.embed) {
-            if (seenMedia.has(candidate.embed)) continue
-            seenMedia.add(candidate.embed)
-            const iframe = createEmbedIframe(candidate.embed)
-            if (!iframe) continue
-            if (replace) block.replaceWith(iframe)
-            else block.after(iframe)
+        if (!candidate.media) continue
+
+        if (candidate.media.kind === 'card') {
+            const embed = candidate.media.embed
+            if (seenCards.has(embed.url)) continue
+            seenCards.add(embed.url)
+            const card = createMediaCard(embed)
+            if (replace) block.replaceWith(card)
+            else block.after(card)
+            continue
         }
+
+        const embed = candidate.media.embed
+        if (seenMedia.has(embed.url)) continue
+        seenMedia.add(embed.url)
+        const iframe = createEmbedIframe(embed.url)
+        if (!iframe) continue
+        if (replace) block.replaceWith(iframe)
+        else block.after(iframe)
     }
 
     return template.innerHTML

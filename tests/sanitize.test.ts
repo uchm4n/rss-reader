@@ -17,6 +17,7 @@ describe('sanitizePostHtml', () => {
     expect(html).toContain('rel="noreferrer noopener"')
   })
 
+  // The sanitizer keeps the normalized iframe; enhancePostHtml replaces YouTube with a card.
   it('keeps allowlisted iframe embeds with safe attributes', () => {
     const html = sanitizePostHtml(
       '<iframe src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" width="560" height="315"></iframe>'

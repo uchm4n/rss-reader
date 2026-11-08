@@ -1,12 +1,18 @@
 export interface SafeEmbed {
     provider: string
     url: string
+    mode: 'iframe' | 'link'
+    pageUrl: string | null
+    thumbnailUrl: string | null
     aspectRatio: number
     forceAspectRatio?: boolean
 }
 
 interface BuiltEmbed {
     url: string
+    mode?: 'iframe' | 'link'
+    pageUrl?: string
+    thumbnailUrl?: string
     aspectRatio?: number
 }
 
@@ -39,13 +45,28 @@ function bareHost(url: URL): string {
     return url.hostname.toLowerCase().replace(/^www\./, '')
 }
 
+function youtubeVideo(id: string): BuiltEmbed {
+    return {
+        url: `https://www.youtube-nocookie.com/embed/${id}`,
+        mode: 'link',
+        pageUrl: `https://www.youtube.com/watch?v=${id}`,
+        thumbnailUrl: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`
+    }
+}
+
+function youtubePlaylist(list: string): BuiltEmbed {
+    return {
+        url: `https://www.youtube-nocookie.com/embed/videoseries?list=${list}`,
+        mode: 'link',
+        pageUrl: `https://www.youtube.com/playlist?list=${list}`
+    }
+}
+
 function buildYouTube(url: URL): BuiltEmbed | null {
     const host = bareHost(url)
     if (host === 'youtu.be') {
         const id = url.pathname.split('/').filter(Boolean)[0]
-        return id && YOUTUBE_ID.test(id)
-            ? {url: `https://www.youtube-nocookie.com/embed/${id}`}
-            : null
+        return id && YOUTUBE_ID.test(id) ? youtubeVideo(id) : null
     }
 
     if (host !== 'youtube.com' && host !== 'm.youtube.com' && host !== 'youtube-nocookie.com') {
@@ -55,34 +76,22 @@ function buildYouTube(url: URL): BuiltEmbed | null {
     const segments = url.pathname.split('/').filter(Boolean)
     if (segments[0] === 'watch') {
         const id = url.searchParams.get('v')
-        return id && YOUTUBE_ID.test(id)
-            ? {url: `https://www.youtube-nocookie.com/embed/${id}`}
-            : null
+        return id && YOUTUBE_ID.test(id) ? youtubeVideo(id) : null
     }
 
     if (segments[0] === 'embed' && segments[1] === 'videoseries') {
         const list = url.searchParams.get('list')
-        return list && YOUTUBE_ID.test(list)
-            ? {
-                url: `https://www.youtube-nocookie.com/embed/videoseries?list=${list}`
-            }
-            : null
+        return list && YOUTUBE_ID.test(list) ? youtubePlaylist(list) : null
     }
 
     if (segments[0] === 'embed' || segments[0] === 'shorts' || segments[0] === 'live') {
         const id = segments[1]
-        return id && YOUTUBE_ID.test(id)
-            ? {url: `https://www.youtube-nocookie.com/embed/${id}`}
-            : null
+        return id && YOUTUBE_ID.test(id) ? youtubeVideo(id) : null
     }
 
     if (segments[0] === 'playlist') {
         const list = url.searchParams.get('list')
-        return list && YOUTUBE_ID.test(list)
-            ? {
-                url: `https://www.youtube-nocookie.com/embed/videoseries?list=${list}`
-            }
-            : null
+        return list && YOUTUBE_ID.test(list) ? youtubePlaylist(list) : null
     }
 
     return null
@@ -296,6 +305,9 @@ export function normalizeEmbedUrl(raw: string | null): SafeEmbed | null {
     return {
         provider: provider.name,
         url: built.url,
+        mode: built.mode ?? 'iframe',
+        pageUrl: built.pageUrl ?? null,
+        thumbnailUrl: built.thumbnailUrl ?? null,
         aspectRatio: built.aspectRatio ?? provider.aspectRatio,
         forceAspectRatio: provider.forceAspectRatio
     }

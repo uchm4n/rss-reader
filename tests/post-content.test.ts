@@ -263,4 +263,70 @@ describe('renderPostContent', () => {
     expect(htmlOf(result)).toContain('srcset="https://example.com/a.webp"')
     expect(htmlOf(result)).toContain('loading="lazy"')
   })
+
+  it('renders YouTube links as preview cards instead of erroring iframes', () => {
+    const result = renderPostContent(
+      '<p>Watch: <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">this video</a></p>',
+      'html'
+    )
+    const html = htmlOf(result)
+
+    expect(html).toContain('class="media-card"')
+    expect(html).toContain(
+      'href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"'
+    )
+    expect(html).toContain(
+      'src="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"'
+    )
+    expect(html).toContain('Watch:')
+    expect(html).not.toContain('<iframe')
+  })
+
+  it('replaces a YouTube iframe with a preview card', () => {
+    const result = renderPostContent(
+      '<iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>',
+      'html'
+    )
+    const html = htmlOf(result)
+
+    expect(html).toContain('class="media-card"')
+    expect(html).not.toContain('<iframe')
+  })
+
+  it('keeps non-YouTube provider embeds as iframes', () => {
+    const result = renderPostContent(
+      '<p><a href="https://vimeo.com/123456789">Watch</a></p>',
+      'html'
+    )
+    const html = htmlOf(result)
+
+    expect(html).toContain('<iframe')
+    expect(html).toContain('player.vimeo.com/video/123456789')
+    expect(html).not.toContain('media-card')
+  })
+
+  it('deduplicates a YouTube link and iframe for the same video', () => {
+    const result = renderPostContent(
+      '<p><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Watch</a></p><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelectorAll('.media-card')).toHaveLength(1)
+    expect(container.querySelector('iframe')).toBeNull()
+  })
+
+  it('renders a YouTube link inside a Reddit summary as a card', () => {
+    const result = renderPostContent(
+      '<table><tr><td><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/">post</a></td><td><div class="md"><p>Summary <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">video</a></p></div> submitted by <a href="https://www.reddit.com/user/foo">/u/foo</a></td></tr></table>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelector('.reddit-card')).not.toBeNull()
+    expect(container.querySelector('.reddit-summary .media-card')).not.toBeNull()
+    expect(container.querySelector('iframe')).toBeNull()
+  })
 })

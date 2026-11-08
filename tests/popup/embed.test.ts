@@ -147,6 +147,33 @@ describe('normalizeEmbedUrl', () => {
     })
   })
 
+  it('marks YouTube as a link card and keeps other providers as iframes', () => {
+    expect(
+      normalizeEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ')
+    ).toMatchObject({
+      provider: 'YouTube',
+      mode: 'link',
+      pageUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      thumbnailUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg'
+    })
+    expect(normalizeEmbedUrl('https://youtu.be/dQw4w9WgXcQ')).toMatchObject({
+      mode: 'link',
+      pageUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+    })
+    expect(
+      normalizeEmbedUrl('https://www.youtube.com/playlist?list=PL123abc')
+    ).toMatchObject({
+      mode: 'link',
+      pageUrl: 'https://www.youtube.com/playlist?list=PL123abc',
+      thumbnailUrl: null
+    })
+    expect(normalizeEmbedUrl('https://vimeo.com/123456789')).toMatchObject({
+      mode: 'iframe',
+      pageUrl: null,
+      thumbnailUrl: null
+    })
+  })
+
   it('rejects unknown hosts, non-https and relative URLs', () => {
     expect(normalizeEmbedUrl('https://example.com/embed/x')).toBeNull()
     expect(normalizeEmbedUrl('http://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBeNull()
