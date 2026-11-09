@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "version": "1.0.0",
+  "version": "0.5",
   "name": "RSS Reader",
   "short_name": "RSS Reader",
   "description": "A local-first RSS and Atom reader.",

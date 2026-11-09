@@ -2,7 +2,7 @@
   "private": true,
   "name": "rss-reader",
   "description": "A local-first RSS and Atom reader.",
-  "version": "1.0.0",
+  "version": "0.5",
   "license": "MIT",
   "type": "module",
   "dependencies": {
