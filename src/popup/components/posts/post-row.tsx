@@ -15,7 +15,7 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
     return (
         <div
             className={cn(
-                'flex w-full items-start gap-3 px-4 py-3 transition-colors hover:bg-brand/5',
+                'flex w-full items-start gap-3 px-4 py-3.5 transition-colors hover:bg-brand/5',
                 !post.status && 'bg-muted/30'
             )}
         >
@@ -36,23 +36,22 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
           <FeedIcon favicon={feed?.favicon ?? null} className="size-4"/>
         </span>
 
-                <span className="min-w-0 flex-1">
-          <span className="line-clamp-2 text-sm font-medium leading-5">{post.title}</span>
+                <span className="min-w-0 flex-1 overflow-hidden">
+                <span className="line-clamp-2 wrap-break-word text-sm font-medium leading-5">{post.title}</span>
 
                     {post.excerpt ? (
-                        <span className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-              {post.excerpt}
-            </span>
+                        <span
+                            className="mt-1 line-clamp-2 wrap-break-word text-xs leading-5 text-muted-foreground">
+                        {post.excerpt}
+                    </span>
                     ) : null}
 
                     <span className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            {feed?.title ? (
-                <span className="max-w-40 truncate">{feed.title}</span>
-            ) : null}
+                    {feed?.title ? (<span className="max-w-40 truncate">{feed.title}</span>) : null}
                         {feed?.title ? <span aria-hidden="true">·</span> : null}
                         <span>{formatRelativeTime(new Date(post.publishedAt))}</span>
-          </span>
-        </span>
+                </span>
+            </span>
 
                 {post.imageUrl ? (
                     <img

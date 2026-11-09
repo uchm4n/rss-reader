@@ -20,4 +20,33 @@ describe('PostRow', () => {
     expect(document.querySelector('button button')).toBeNull()
     expect(document.querySelectorAll('button')).toHaveLength(2)
   })
+
+  it('clamps long text inside the row and keeps the star outside it', () => {
+    const title = 'A'.repeat(160)
+    const excerpt = 'B'.repeat(160)
+    const html = renderToStaticMarkup(
+      React.createElement(PostRow, {
+        post: postFixture({title, excerpt}),
+        feed: feedFixture(),
+        onOpen: () => {},
+        onToggleStar: () => {}
+      })
+    )
+    const document = new JSDOM(html).window.document
+    const titleNode = [...document.querySelectorAll('span')].find(
+      (node) => node.textContent === title
+    )
+    const excerptNode = [...document.querySelectorAll('span')].find(
+      (node) => node.textContent === excerpt
+    )
+
+    expect(titleNode?.className).toContain('line-clamp-2')
+    expect(titleNode?.className).toContain('break-words')
+    expect(excerptNode?.className).toContain('line-clamp-2')
+    expect(excerptNode?.className).toContain('break-words')
+    expect(titleNode?.parentElement?.className).toContain('overflow-hidden')
+
+    const star = document.querySelector('button[aria-label="Star post"]')
+    expect(star?.className).toContain('shrink-0')
+  })
 })

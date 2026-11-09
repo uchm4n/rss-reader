@@ -101,7 +101,7 @@ export function PostList({selection, onOpenPost}: PostListProps) {
                     </Tooltip>
                 </TooltipProvider>
             </div>
-            <ScrollArea className="min-h-0 flex-1">
+            <ScrollArea className="min-h-0 min-w-0 flex-1 **:data-[slot=scroll-area-viewport]:overflow-x-hidden [&_[data-slot=scroll-area-viewport]>div]:block! [&_[data-slot=scroll-area-viewport]>div]:w-full!">
                 <div className="divide-y">
                     {posts.map((post) => {
                         const feed: Feed | undefined = feedsById.get(post.feedId)
