@@ -1,4 +1,4 @@
-import type {Post} from '../../db/types'
+import type {Post} from '@/db/types.ts'
 import {plainText} from '../parser/html'
 
 export const MAX_MATCH_WORDS = 20
