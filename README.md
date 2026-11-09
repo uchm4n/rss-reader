@@ -16,7 +16,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 ### Settings
 
 - **General:** theme (system/light/dark), refresh interval (30 seconds to 1 hour; 15 minutes default), retention per feed (default 200), notifications, mark read on open, start view (All/Unread/Starred), and remember app state (last view, collapsed folders and open post; on by default).
-- **Feeds:** add, edit and delete feeds; see URL, folder, last fetch and last error
+- **Feeds:** add, edit and delete feeds; see URL, folder, last fetch and last error; set per-feed watch words as tags
 - **Folders:** add, rename, reorder and delete folders
 - **OPML:** import a file or export subscriptions
 - **Storage:** read-only store table and record counts, browser storage estimate, and Clear all data
@@ -29,6 +29,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 - Each feed retains the newest 200 posts by default (configurable); aggregate views cap at 200.
 - Feeds refresh on a dynamic alarm (15min default); failures back off exponentially up to 1 hour.
 - Media is responsive: most images/video cap at 60vh, native controls, sandboxed iframes, no autoplay.
+- Per-feed watch words are matched against post titles, excerpts and feed content with word-form and typo tolerance. Matching feeds show an amber tag in the sidebar, and matching text is highlighted in the post list and reader.
 - Pin a post (pin icon before the star) to open it in a separate resizable window that stays open. It opens as a normal 600×700 window near the popup, keeps only the article, and has a slim header with an X to close it. One window per post; pinning the same post again focuses its existing window.
 - With **Remember app state** enabled, the popup reopens on the last view, with collapsed folders and the open post restored.
 

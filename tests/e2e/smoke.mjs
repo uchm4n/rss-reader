@@ -598,6 +598,20 @@ async function main() {
       'Settings did not reopen'
     )
     await evaluate(`(() => {
+      const input = document.querySelector('input[aria-label="Match words"]')
+      if (!input) return false
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
+      setter.call(input, 'reddit')
+      input.dispatchEvent(new Event('input', {bubbles: true}))
+      return true
+    })()`)
+    await sleep(50)
+    await evaluate(`(() => {
+      const input = document.querySelector('input[aria-label="Match words"]')
+      input?.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}))
+      return true
+    })()`)
+    await evaluate(`(() => {
       const button = [...document.querySelectorAll('button')].find((candidate) =>
         candidate.textContent?.trim() === 'Add feed'
       )
@@ -614,7 +628,23 @@ async function main() {
       async () => !(await bodyText()).includes('Settings'),
       'did not return to the reader after adding'
     )
+    await waitFor(
+      async () => (await bodyText()).includes('Matches: reddit'),
+      'watch-word indicator did not appear on the feed row'
+    )
+    await evaluate(`(() => {
+      const button = [...document.querySelectorAll('aside button')].find((candidate) =>
+        candidate.textContent?.includes('Fixture Reddit')
+      )
+      button?.click()
+    })()`)
+    await waitFor(
+      async () =>
+        (await evaluate(`document.querySelectorAll('mark.match-highlight').length`)) > 0,
+      'watch-word highlight did not appear in the post list'
+    )
     console.log('   submitting the form added the feed and stayed in Settings')
+    console.log('   the watch word appeared as a feed indicator and post highlight')
 
     await popup.send('Page.reload', {ignoreCache: true})
     const activeDiscovery = await waitFor(async () => {
