@@ -136,6 +136,62 @@ describe('ingestFeed', () => {
     expect(posts.every((post) => post.status)).toBe(true)
   })
 
+  it('tracks watch-word matches on the feed', async () => {
+    const feed = await seedFeed({matchWords: ['WordPress', 'AI']})
+    const parsed = parsedFeed([
+      parsedPost({guid: 'g1', title: 'WordPress news', publishedAt: 100, link: 'https://example.com/1'}),
+      parsedPost({guid: 'g2', title: 'Other', publishedAt: 200, link: 'https://example.com/2'})
+    ])
+
+    await ingestFeed(feed, parsed, {
+      retention: 200,
+      firstFetch: true,
+      now: 1_000
+    })
+
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress'])
+  })
+
+  it('updates watch-word matches when a later post matches', async () => {
+    const feed = await seedFeed({matchWords: ['WordPress', 'AI']})
+
+    await ingestFeed(
+      feed,
+      parsedFeed([parsedPost({guid: 'g1', title: 'WordPress news', publishedAt: 100, link: 'https://example.com/1'})]),
+      {retention: 200, firstFetch: true, now: 1_000}
+    )
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress'])
+
+    await ingestFeed(
+      feed,
+      parsedFeed([parsedPost({guid: 'g2', title: 'AI update', publishedAt: 200, link: 'https://example.com/2'})]),
+      {retention: 200, firstFetch: false, now: 2_000}
+    )
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress', 'AI'])
+  })
+
+  it('clears a match when retention removes the matching post', async () => {
+    const feed = await seedFeed({matchWords: ['WordPress']})
+
+    await ingestFeed(
+      feed,
+      parsedFeed([
+        parsedPost({guid: 'match', title: 'WordPress news', publishedAt: 100, link: 'https://example.com/match'}),
+        parsedPost({guid: 'other', title: 'Other', publishedAt: 200, link: 'https://example.com/other'})
+      ]),
+      {retention: 200, firstFetch: true, now: 1_000}
+    )
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress'])
+
+    await ingestFeed(
+      feed,
+      parsedFeed([parsedPost({guid: 'new', title: 'Newer', publishedAt: 300, link: 'https://example.com/new'})]),
+      {retention: 1, firstFetch: false, now: 2_000}
+    )
+
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual([])
+  })
+
   it('adds later items as unread at the top', async () => {
     const feed = await seedFeed()
     await ingestFeed(

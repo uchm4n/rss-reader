@@ -19,6 +19,8 @@ export function feedFixture(overrides: Partial<Feed> = {}): Feed {
     errorCount: 0,
     lastError: null,
     unreadCount: 0,
+    matchWords: [],
+    matchedWords: [],
     createdAt: 1,
     updatedAt: 1,
     ...overrides

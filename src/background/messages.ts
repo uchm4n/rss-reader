@@ -2,6 +2,7 @@ import {db} from '../db/db'
 import {getSettings} from '../db/settings'
 import type {Feed} from '../db/types'
 import {canonicalFeedUrl} from '../shared/model/feed-url'
+import {findMatchedWords, sanitizeMatchWords} from '../shared/model/match-words'
 import {generateOpml, parseOpmlFeeds} from '../shared/parser/parse-opml'
 import {parseFeedDocument} from '../shared/parser/parse-feed'
 import {syncActionBadge} from './badge'
@@ -19,6 +20,7 @@ export type Command =
     url: string
     folderId?: string | null
     refreshInterval?: number | null
+    matchWords?: string[]
     sourceTabId?: number
 }
     | {
@@ -28,6 +30,7 @@ export type Command =
         title?: string
         folderId?: string | null
         refreshInterval?: number | null
+        matchWords?: string[]
     }
 }
     | { type: 'feed:delete'; id: string }
@@ -328,6 +331,8 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
         errorCount: 0,
         lastError: null,
         unreadCount: 0,
+        matchWords: sanitizeMatchWords(command.matchWords),
+        matchedWords: [],
         createdAt: now,
         updatedAt: now
     }
@@ -401,6 +406,8 @@ async function importOpml(xml: string): Promise<CommandResult> {
             errorCount: 0,
             lastError: null,
             unreadCount: 0,
+            matchWords: [],
+            matchedWords: [],
             createdAt: now,
             updatedAt: now
         })
@@ -441,6 +448,11 @@ export async function handleCommand(command: Command): Promise<CommandResult> {
                 if (command.patch.refreshInterval !== undefined) {
                     updates.refreshInterval = command.patch.refreshInterval
                     intervalChanged = true
+                }
+                if (command.patch.matchWords !== undefined) {
+                    updates.matchWords = sanitizeMatchWords(command.patch.matchWords)
+                    const posts = await db.posts.where('feedId').equals(feed.id).toArray()
+                    updates.matchedWords = findMatchedWords(updates.matchWords, posts)
                 }
 
                 if (intervalChanged) {

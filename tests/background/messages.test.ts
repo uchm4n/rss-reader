@@ -79,6 +79,58 @@ describe('handleCommand', () => {
     expect(feeds[0]).toMatchObject({fetchMode: 'background', url: 'https://example.com/feed.xml'})
   })
 
+  it('stores watch words and matches them on add', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          '<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><link>https://example.com/</link><description>d</description><item><title>WordPress news</title><link>https://example.com/1</link><guid>g1</guid><description>body</description></item></channel></rss>',
+          {status: 200}
+        )
+      )
+    )
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://example.com/feed.xml',
+      matchWords: [' WordPress ', 'wordpress', 'AI']
+    })
+
+    expect(result.ok).toBe(true)
+    expect((await db.feeds.toArray())[0]).toMatchObject({
+      matchWords: ['WordPress', 'AI'],
+      matchedWords: ['WordPress']
+    })
+  })
+
+  it('rescans retained posts when watch words change', async () => {
+    await seedFeed({id: 'feed-1'})
+    await db.posts.bulkAdd([
+      postFixture({id: 'p1', feedId: 'feed-1', title: 'WordPress news', publishedAt: 100}),
+      postFixture({id: 'p2', feedId: 'feed-1', title: 'AI update', publishedAt: 200})
+    ])
+
+    const result = await handleCommand({
+      type: 'feed:update',
+      id: 'feed-1',
+      patch: {matchWords: [' wordpress ', 'WordPress', 'AI']}
+    })
+
+    expect(result).toEqual({ok: true})
+    expect(await db.feeds.get('feed-1')).toMatchObject({
+      matchWords: ['wordpress', 'AI'],
+      matchedWords: ['wordpress', 'AI']
+    })
+
+    await handleCommand({
+      type: 'feed:update',
+      id: 'feed-1',
+      patch: {matchWords: []}
+    })
+
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual([])
+  })
+
   it('caches a feed favicon as a data URL on add', async () => {
     const png = Uint8Array.from(
       atob(

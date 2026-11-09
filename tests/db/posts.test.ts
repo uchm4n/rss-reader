@@ -107,6 +107,18 @@ describe('post actions', () => {
     expect((await db.feeds.get('feed-1'))?.unreadCount).toBe(1)
   })
 
+  it('recomputes matched words when the matching post is trimmed', async () => {
+    await seedFeed({matchWords: ['WordPress'], matchedWords: ['WordPress']})
+    await db.posts.bulkAdd([
+      postFixture({id: 'match', guid: 'match', title: 'WordPress news', publishedAt: 100}),
+      postFixture({id: 'other', guid: 'other', title: 'Other', publishedAt: 200})
+    ])
+
+    await trimFeedPosts('feed-1', 1)
+
+    expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual([])
+  })
+
   it('trims the oldest posts and recomputes unread count', async () => {
     await seedFeed({unreadCount: 2})
     await db.posts.bulkAdd([

@@ -1,6 +1,7 @@
 import Dexie from 'dexie'
 import {db} from './db'
 import type {Post} from './types'
+import {findMatchedWords} from '../shared/model/match-words'
 
 async function unreadCountForFeed(feedId: string): Promise<number> {
     return db.posts
@@ -95,7 +96,9 @@ export async function trimFeedPosts(
 
         const keep = posts.slice(0, limit)
         const unread = keep.filter((post) => !post.status).length
-        await db.feeds.update(feedId, {unreadCount: unread})
+        const feed = await db.feeds.get(feedId)
+        const matchedWords = findMatchedWords(feed?.matchWords, keep)
+        await db.feeds.update(feedId, {unreadCount: unread, matchedWords})
 
         return {trimmed: remove.length, unread}
     })

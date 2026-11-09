@@ -20,6 +20,8 @@ export interface Feed {
     errorCount: number
     lastError: string | null
     unreadCount: number
+    matchWords?: string[]
+    matchedWords?: string[]
     createdAt: number
     updatedAt: number
 }

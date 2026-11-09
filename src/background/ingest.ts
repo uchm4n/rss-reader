@@ -1,6 +1,7 @@
 import Dexie from 'dexie'
 import {db} from '../db/db'
 import type {Feed, Post} from '../db/types'
+import {findMatchedWords} from '../shared/model/match-words'
 import type {ParsedFeed} from '../shared/parser/parse-feed'
 import {postKey} from '../shared/parser/ids'
 
@@ -113,7 +114,8 @@ export async function ingestFeed(
 
         const keep = posts.slice(0, retention)
         const unread = keep.filter((post) => !post.status).length
-        await db.feeds.update(feed.id, {unreadCount: unread})
+        const matchedWords = findMatchedWords(currentFeed.matchWords, keep)
+        await db.feeds.update(feed.id, {unreadCount: unread, matchedWords})
 
         return {inserted, trimmed: remove.length, unread}
     })
