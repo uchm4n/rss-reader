@@ -63,6 +63,10 @@ Requires Chrome 110 or newer.
 
 Use a fresh extension profile: this is a new extension identity with a fresh `rss-reader` database and no migration from older products.
 
+### Privacy
+
+No account, analytics, or tracking. See [PRIVACY.md](PRIVACY.md) for what is stored locally and which sites the extension contacts.
+
 ## License
 
 MIT
