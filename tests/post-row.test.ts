@@ -41,9 +41,9 @@ describe('PostRow', () => {
     )
 
     expect(titleNode?.className).toContain('line-clamp-2')
-    expect(titleNode?.className).toContain('break-words')
+    expect(titleNode?.className).toContain('wrap-break-word')
     expect(excerptNode?.className).toContain('line-clamp-2')
-    expect(excerptNode?.className).toContain('break-words')
+    expect(excerptNode?.className).toContain('wrap-break-word')
     expect(titleNode?.parentElement?.className).toContain('overflow-hidden')
 
     const star = document.querySelector('button[aria-label="Star post"]')

@@ -54,6 +54,8 @@ Run `npm run build:chrome` before `npm run test:e2e`; the E2E test uses the buil
 
 ## Loading the extension
 
+Requires Chrome 110 or newer.
+
 1. `npm run build:chrome`
 2. Open `chrome://extensions`.
 3. Enable Developer mode.
