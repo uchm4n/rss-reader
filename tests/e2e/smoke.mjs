@@ -605,12 +605,6 @@ async function main() {
       input.dispatchEvent(new Event('input', {bubbles: true}))
       return true
     })()`)
-    await sleep(50)
-    await evaluate(`(() => {
-      const input = document.querySelector('input[aria-label="Match words"]')
-      input?.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', bubbles: true}))
-      return true
-    })()`)
     await evaluate(`(() => {
       const button = [...document.querySelectorAll('button')].find((candidate) =>
         candidate.textContent?.trim() === 'Add feed'

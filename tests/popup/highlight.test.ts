@@ -25,6 +25,19 @@ describe('highlightPostHtml', () => {
     expect(document.querySelector('.media-card mark')).toBeNull()
   })
 
+  it('highlights reddit summaries but not generated card chrome', () => {
+    const html = highlightPostHtml(
+      '<div class="reddit-card"><div class="reddit-summary">WordPress</div><div class="reddit-meta">WordPress</div><a class="reddit-link">WordPress</a></div>',
+      ['WordPress']
+    )
+    const document = new DOMParser().parseFromString(html, 'text/html')
+
+    expect(document.querySelectorAll('mark.match-highlight')).toHaveLength(1)
+    expect(document.querySelector('.reddit-summary mark')).not.toBeNull()
+    expect(document.querySelector('.reddit-meta mark')).toBeNull()
+    expect(document.querySelector('.reddit-link mark')).toBeNull()
+  })
+
   it('preserves link attributes', () => {
     const html = highlightPostHtml(
       '<p><a href="https://example.com" target="_blank">WordPress</a></p>',

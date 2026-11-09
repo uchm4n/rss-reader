@@ -37,25 +37,40 @@ function normalizeToken(value: string): string {
 
 function trimDoubleConsonant(value: string): string {
     const last = value.at(-1)
-    if (last && last === value.at(-2) && !'lszf'.includes(last)) {
+    if (!last || last !== value.at(-2)) return value
+    if (!/[bcdfghjklmnpqrstvwxyz]/.test(last)) return value
+    if ('lszf'.includes(last)) return value
+    return value.slice(0, -1)
+}
+
+function stemOnce(value: string): string {
+    if (value.length > 5 && value.endsWith('ies')) return `${value.slice(0, -3)}y`
+    if (value.length > 5 && value.endsWith('ing')) {
+        return trimDoubleConsonant(value.slice(0, -3))
+    }
+    if (value.length > 5 && value.endsWith('ed')) {
+        return trimDoubleConsonant(value.slice(0, -2))
+    }
+    if (value.length > 4 && /(?:xes|ches|shes|sses|zes)$/.test(value)) {
+        return value.slice(0, -2)
+    }
+    if (value.length > 5 && value.endsWith('es')) return value.slice(0, -2)
+    if (value.length > 4 && value.endsWith('s') && !value.endsWith('ss')) {
         return value.slice(0, -1)
     }
     return value
 }
 
 function stem(value: string): string {
-    if (value.length > 4 && value.endsWith('ies')) return `${value.slice(0, -3)}y`
-    if (value.length > 4 && value.endsWith('ing')) {
-        return trimDoubleConsonant(value.slice(0, -3))
+    let result = value
+
+    for (let pass = 0; pass < 2; pass += 1) {
+        const next = stemOnce(result)
+        if (next === result) break
+        result = next
     }
-    if (value.length > 4 && value.endsWith('ed')) {
-        return trimDoubleConsonant(value.slice(0, -2))
-    }
-    if (value.length > 3 && value.endsWith('es')) return value.slice(0, -2)
-    if (value.length > 3 && value.endsWith('s') && !value.endsWith('ss')) {
-        return value.slice(0, -1)
-    }
-    return value
+
+    return result
 }
 
 function tokensFor(value: string): WordToken[] {
@@ -146,8 +161,24 @@ function editDistance(left: string, right: string): number {
     return matrix[left.length][right.length]
 }
 
+function inflectedMatch(left: string, right: string): boolean {
+    const short = left.length <= right.length ? left : right
+    const long = short === left ? right : left
+    if (short.length < 3) return false
+
+    if (short.endsWith('e') && long === `${short}d`) return true
+    if (short.length === 3 && short.endsWith('e') && long === `${short}s`) return true
+    if (short.length >= 4 && short.endsWith('e') && long === `${short.slice(0, -1)}ing`) {
+        return true
+    }
+    if (short.length >= 4 && long === `${short}s`) return true
+    if (short.length >= 3 && long === `${short}es`) return true
+    return false
+}
+
 function tokenMatches(needle: WordToken, haystack: Token): boolean {
     if (needle.value === haystack.value) return true
+    if (inflectedMatch(needle.value, haystack.value)) return true
     if (needle.stem === haystack.stem) return true
 
     const short = needle.stem.length <= haystack.stem.length ? needle.stem : haystack.stem
@@ -222,6 +253,17 @@ export function findMatchedWords(
     return compiled
         .filter((word) => matched.has(word.display))
         .map((word) => word.display)
+}
+
+export function safeFindMatchedWords(
+    words: readonly string[] | undefined,
+    posts: readonly Pick<Post, 'title' | 'excerpt' | 'contentHtml' | 'contentType'>[]
+): string[] {
+    try {
+        return findMatchedWords(words, posts)
+    } catch {
+        return []
+    }
 }
 
 function mergeRanges(ranges: MatchRange[]): MatchRange[] {

@@ -35,4 +35,16 @@ describe('FeedRow watch words', () => {
     expect(html).not.toContain('Matches:')
     expect(html).not.toContain('lucide-tag')
   })
+
+  it('handles a feed row written before watch words existed', () => {
+    const feed = feedFixture()
+    delete feed.matchWords
+    delete feed.matchedWords
+
+    const html = render(feed)
+
+    expect(html).toContain('Feed')
+    expect(html).not.toContain('Matches:')
+    expect(html).not.toContain('lucide-tag')
+  })
 })

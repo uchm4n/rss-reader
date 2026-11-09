@@ -1,7 +1,7 @@
 import React from 'react'
 import {renderToStaticMarkup} from 'react-dom/server'
 import {describe, expect, it} from 'vitest'
-import {ReaderHeader} from '../src/popup/components/posts/post-reader'
+import {PostArticle, ReaderHeader} from '../src/popup/components/posts/post-reader'
 import {feedFixture, postFixture} from './helpers/db'
 
 function render(status: boolean): string {
@@ -43,5 +43,20 @@ describe('ReaderHeader', () => {
     expect(html).not.toContain('>Mark unread<')
     expect(html).not.toContain('>Open original<')
     expect(html).toContain('aria-label="Open original"')
+  })
+})
+
+describe('PostArticle', () => {
+  it('does not highlight the empty-content placeholder', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostArticle, {
+        post: postFixture({title: 'Post', excerpt: '', contentHtml: null}),
+        feed: feedFixture({matchWords: ['content']}),
+        onOpenOriginal: () => {}
+      })
+    )
+
+    expect(html).toContain('No content available for this post.')
+    expect(html).not.toContain('<mark')
   })
 })

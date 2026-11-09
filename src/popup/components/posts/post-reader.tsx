@@ -203,10 +203,11 @@ export function PostArticle({
             ) : hnId === null ? (
                 <div className="mt-5 space-y-4">
                     <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
-                        <HighlightedText
-                            text={post.excerpt || 'No content available for this post.'}
-                            words={feed?.matchWords}
-                        />
+                        {post.excerpt ? (
+                            <HighlightedText text={post.excerpt} words={feed?.matchWords}/>
+                        ) : (
+                            'No content available for this post.'
+                        )}
                     </p>
                     {post.link ? (
                         <Button onClick={() => onOpenOriginal(post.link!)}>Read on site</Button>

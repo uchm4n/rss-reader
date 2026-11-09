@@ -2,7 +2,7 @@ import {db} from '../db/db'
 import {getSettings} from '../db/settings'
 import type {Feed} from '../db/types'
 import {canonicalFeedUrl} from '../shared/model/feed-url'
-import {findMatchedWords, sanitizeMatchWords} from '../shared/model/match-words'
+import {safeFindMatchedWords, sanitizeMatchWords} from '../shared/model/match-words'
 import {generateOpml, parseOpmlFeeds} from '../shared/parser/parse-opml'
 import {parseFeedDocument} from '../shared/parser/parse-feed'
 import {syncActionBadge} from './badge'
@@ -452,7 +452,7 @@ export async function handleCommand(command: Command): Promise<CommandResult> {
                 if (command.patch.matchWords !== undefined) {
                     updates.matchWords = sanitizeMatchWords(command.patch.matchWords)
                     const posts = await db.posts.where('feedId').equals(feed.id).toArray()
-                    updates.matchedWords = findMatchedWords(updates.matchWords, posts)
+                    updates.matchedWords = safeFindMatchedWords(updates.matchWords, posts)
                 }
 
                 if (intervalChanged) {

@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useRef, useState} from 'react'
 import {toast} from 'sonner'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
@@ -8,7 +8,7 @@ import {useFeeds} from '../hooks/use-feeds'
 import {useFolders} from '../hooks/use-folders'
 import {sendCommand} from '../lib/commands'
 import {AddFeedForm, INTERVAL_OPTIONS} from './add-feed-form'
-import {MatchWordsInput} from './match-words-input'
+import {MatchWordsInput, type MatchWordsInputHandle} from './match-words-input'
 
 const selectClass =
     'h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground'
@@ -34,6 +34,7 @@ export function FeedsSettings({
     const feeds = useFeeds()
     const folders = useFolders()
     const [editingId, setEditingId] = useState<string | null>(null)
+    const matchWordsRef = useRef<MatchWordsInputHandle>(null)
     const [draft, setDraft] = useState<FeedDraft>({
         title: '',
         folderId: '',
@@ -55,6 +56,7 @@ export function FeedsSettings({
         if (!editingId) return
 
         try {
+            const matchWords = matchWordsRef.current?.commit() ?? draft.matchWords
             await sendCommand({
                 type: 'feed:update',
                 id: editingId,
@@ -62,7 +64,7 @@ export function FeedsSettings({
                     title: draft.title,
                     folderId: draft.folderId || null,
                     refreshInterval: draft.refreshInterval ? Number(draft.refreshInterval) : null,
-                    matchWords: draft.matchWords
+                    matchWords
                 }
             })
             setEditingId(null)
@@ -150,6 +152,7 @@ export function FeedsSettings({
                                     </select>
                                 </div>
                                 <MatchWordsInput
+                                    ref={matchWordsRef}
                                     value={draft.matchWords}
                                     onChange={(matchWords) =>
                                         setDraft((previous) => ({...previous, matchWords}))

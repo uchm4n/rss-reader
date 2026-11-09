@@ -1,7 +1,7 @@
 import {createMatchRanges} from '@/shared/model/match-words'
 
 const SKIP_SELECTOR =
-    'pre, code, button, svg, script, style, textarea, .code-block, .media-card, .match-highlight'
+    'pre, code, button, svg, script, style, textarea, .code-block, .media-card, .reddit-meta, .reddit-link, .match-highlight'
 
 export function highlightPostHtml(
     html: string,

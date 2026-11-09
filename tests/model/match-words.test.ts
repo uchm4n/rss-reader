@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest'
 import {
   findMatchedWords,
   findMatchRanges,
+  safeFindMatchedWords,
   sanitizeMatchWords
 } from '../../src/shared/model/match-words'
 import {postFixture} from '../helpers/db'
@@ -47,6 +48,30 @@ describe('findMatchedWords', () => {
     expect(findMatchedWords(['AI'], [postFixture({title: 'He said hello'})])).toEqual([])
   })
 
+  it('does not turn short words into unrelated stems', () => {
+    expect(findMatchedWords(['news'], [postFixture({title: 'A new study'})])).toEqual([])
+    expect(findMatchedWords(['does'], [postFixture({title: 'What do you think'})])).toEqual([])
+    expect(findMatchedWords(['being'], [postFixture({title: 'I want to be'})])).toEqual([])
+  })
+
+  it('matches common inflected forms', () => {
+    const cases: Array<[string, string]> = [
+      ['move', 'moved'],
+      ['use', 'used'],
+      ['save', 'saved'],
+      ['like', 'liked'],
+      ['name', 'named'],
+      ['make', 'making'],
+      ['thing', 'things'],
+      ['bring', 'brings'],
+      ['string', 'strings']
+    ]
+
+    for (const [word, title] of cases) {
+      expect(findMatchedWords([word], [postFixture({title})])).toEqual([word])
+    }
+  })
+
   it('searches plain text extracted from html bodies', () => {
     expect(
       findMatchedWords(
@@ -70,6 +95,18 @@ describe('findMatchedWords', () => {
         [postFixture({title: 'WordPress and AI'})]
       )
     ).toEqual(['WordPress', 'AI'])
+  })
+
+  it('returns no matches instead of failing when a post is malformed', () => {
+    const bad = Object.defineProperty({}, 'title', {
+      get() {
+        throw new Error('bad post')
+      }
+    })
+
+    expect(
+      safeFindMatchedWords(['WordPress'], [bad as never])
+    ).toEqual([])
   })
 })
 
@@ -101,5 +138,13 @@ describe('findMatchRanges', () => {
     expect(findMatchRanges('wordpress', ['word', 'wordpress'])).toEqual([
       {start: 0, end: 9}
     ])
+  })
+
+  it('does not highlight a short word inside an unrelated stem', () => {
+    expect(findMatchRanges('A new study', ['news'])).toEqual([])
+  })
+
+  it('highlights inflected forms', () => {
+    expect(findMatchRanges('moved house', ['move'])).toEqual([{start: 0, end: 5}])
   })
 })

@@ -247,7 +247,7 @@ body {
     font-size: 0.82em;
 }
 
-.post-content mark {
+.post-content mark:not(.match-highlight) {
     background: color-mix(in oklab, var(--primary) 22%, transparent);
     color: inherit;
     padding: 0 0.15em;

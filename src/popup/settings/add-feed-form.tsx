@@ -1,10 +1,10 @@
-import {type FormEvent, useState} from 'react'
+import {type FormEvent, useRef, useState} from 'react'
 import {toast} from 'sonner'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import type {Folder} from '@/db/types'
 import {sendCommand} from '../lib/commands'
-import {MatchWordsInput} from './match-words-input'
+import {MatchWordsInput, type MatchWordsInputHandle} from './match-words-input'
 
 export const INTERVAL_OPTIONS = [
     {value: 30, label: '30 seconds'},
@@ -35,6 +35,7 @@ export function AddFeedForm({
     const [folderId, setFolderId] = useState('')
     const [refreshInterval, setRefreshInterval] = useState('')
     const [matchWords, setMatchWords] = useState<string[]>([])
+    const matchWordsRef = useRef<MatchWordsInputHandle>(null)
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -45,12 +46,13 @@ export function AddFeedForm({
         setBusy(true)
         setError(null)
         try {
+            const words = matchWordsRef.current?.commit() ?? matchWords
             await sendCommand({
                 type: 'feed:add',
                 url,
                 folderId: folderId || null,
                 refreshInterval: refreshInterval ? Number(refreshInterval) : null,
-                matchWords,
+                matchWords: words,
                 sourceTabId
             })
             setUrl('')
@@ -113,11 +115,11 @@ export function AddFeedForm({
                         </option>
                     ))}
                 </select>
-                <MatchWordsInput value={matchWords} onChange={setMatchWords}/>
+                <MatchWordsInput ref={matchWordsRef} value={matchWords} onChange={setMatchWords}/>
             </div>
             <p className="text-[11px] text-muted-foreground">
-                Match words are checked against post titles and content. Press Enter or
-                comma to add.
+                Matches post titles, excerpts and content. Word forms and small typos are
+                accepted; press Enter or comma to add.
             </p>
             {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
         </form>
