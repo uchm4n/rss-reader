@@ -848,3 +848,16 @@ body {
 .hn-more {
     margin-top: 1rem;
 }
+
+.match-highlight {
+    background-color: color-mix(in oklab, var(--star) 22%, transparent);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 0.08em;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}
+
+.dark .match-highlight {
+    background-color: color-mix(in oklab, var(--star) 28%, transparent);
+}

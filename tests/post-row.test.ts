@@ -49,4 +49,21 @@ describe('PostRow', () => {
     const star = document.querySelector('button[aria-label="Star post"]')
     expect(star?.className).toContain('shrink-0')
   })
+
+  it('highlights matching words in the title and excerpt', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostRow, {
+        post: postFixture({title: 'WordPress news', excerpt: 'WordPress body'}),
+        feed: feedFixture({matchWords: ['WordPress']}),
+        onOpen: () => {},
+        onToggleStar: () => {}
+      })
+    )
+    const document = new JSDOM(html).window.document
+
+    expect(document.querySelectorAll('mark.match-highlight')).toHaveLength(2)
+    expect(document.querySelector('mark.match-highlight')?.textContent).toBe(
+      'WordPress'
+    )
+  })
 })

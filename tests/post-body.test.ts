@@ -22,4 +22,29 @@ describe('PostBody', () => {
     expect(html).toContain('language-json')
     expect(html).toContain('data-copy-code')
   })
+
+  it('highlights matching plain text', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostBody, {
+        content: 'Hello WordPress',
+        matchWords: ['WordPress']
+      })
+    )
+
+    expect(html).toContain('<mark class="match-highlight">WordPress</mark>')
+  })
+
+  it('highlights matching prose but not code', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostBody, {
+        content: '<p>WordPress</p><pre><code>WordPress</code></pre>',
+        contentType: 'html',
+        matchWords: ['WordPress']
+      })
+    )
+    const document = new DOMParser().parseFromString(html, 'text/html')
+
+    expect(document.querySelectorAll('mark.match-highlight')).toHaveLength(1)
+    expect(document.querySelector('pre mark')).toBeNull()
+  })
 })

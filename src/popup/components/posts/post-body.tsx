@@ -1,11 +1,14 @@
 import {type MouseEvent, useMemo} from 'react'
 import type {ContentFormat} from '@/shared/model/post'
+import {highlightPostHtml} from '../../lib/highlight'
 import {renderPostContent} from '../../lib/post-content'
+import {HighlightedText} from './highlighted-text'
 
 interface PostBodyProps {
     content: string
     contentType?: ContentFormat
     imageUrl?: string | null
+    matchWords?: readonly string[]
 }
 
 function copyCode(event: MouseEvent<HTMLDivElement>) {
@@ -30,21 +33,29 @@ function copyCode(event: MouseEvent<HTMLDivElement>) {
         .catch(() => {})
 }
 
-export function PostBody({content, contentType, imageUrl}: PostBodyProps) {
+export function PostBody({content, contentType, imageUrl, matchWords}: PostBodyProps) {
     const rendered = useMemo(
         () => renderPostContent(content, contentType, imageUrl),
         [content, contentType, imageUrl]
     )
+    const highlighted = useMemo(
+        () => (rendered.kind === 'text' ? null : highlightPostHtml(rendered.html, matchWords)),
+        [rendered, matchWords]
+    )
 
     if (rendered.kind === 'text') {
-        return <div className="post-content whitespace-pre-wrap">{rendered.text}</div>
+        return (
+            <div className="post-content whitespace-pre-wrap">
+                <HighlightedText text={rendered.text} words={matchWords}/>
+            </div>
+        )
     }
 
     return (
         <div
             className="post-content"
             onClick={copyCode}
-            dangerouslySetInnerHTML={{__html: rendered.html}}
+            dangerouslySetInnerHTML={{__html: highlighted ?? ''}}
         />
     )
 }

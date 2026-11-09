@@ -19,6 +19,7 @@ import {setPostStatus, togglePostStar} from '../../hooks/use-post-actions'
 import {hnItemId, isHnCommentsOnly} from '../../lib/hn-content'
 import {openPinnedPost} from '../../lib/pinned-post'
 import {FeedIcon} from './feed-icon'
+import {HighlightedText} from './highlighted-text'
 import {HnDiscussion} from './hn-discussion'
 import {PostBody} from './post-body'
 
@@ -177,7 +178,7 @@ export function PostArticle({
     return (
         <article className="mx-auto w-full min-w-0 max-w-2xl px-6 py-5">
             <h1 className="text-xl font-semibold leading-tight [overflow-wrap:anywhere]">
-                {post.title}
+                <HighlightedText text={post.title} words={feed?.matchWords}/>
             </h1>
             <div
                 className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground [overflow-wrap:anywhere]">
@@ -196,12 +197,16 @@ export function PostArticle({
                         content={post.contentHtml}
                         contentType={post.contentType}
                         imageUrl={post.imageUrl}
+                        matchWords={feed?.matchWords}
                     />
                 </div>
             ) : hnId === null ? (
                 <div className="mt-5 space-y-4">
                     <p className="text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">
-                        {post.excerpt || 'No content available for this post.'}
+                        <HighlightedText
+                            text={post.excerpt || 'No content available for this post.'}
+                            words={feed?.matchWords}
+                        />
                     </p>
                     {post.link ? (
                         <Button onClick={() => onOpenOriginal(post.link!)}>Read on site</Button>

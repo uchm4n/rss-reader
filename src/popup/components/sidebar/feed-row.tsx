@@ -1,4 +1,10 @@
+import {Tag} from 'lucide-react'
 import {Button} from '@/components/ui/button'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger
+} from '@/components/ui/tooltip'
 import {cn} from '@/lib/utils'
 import type {Feed} from '@/db/types'
 import {FeedIcon} from '../posts/feed-icon'
@@ -11,7 +17,8 @@ interface FeedRowProps {
 }
 
 export function FeedRow({feed, selected, onSelect}: FeedRowProps) {
-    return (
+    const matched = feed.matchedWords ?? []
+    const row = (
         <Button
             type="button"
             variant="ghost"
@@ -29,6 +36,27 @@ export function FeedRow({feed, selected, onSelect}: FeedRowProps) {
                 className="size-4 shrink-0 group-hover:text-brand"
             />
             <span className="min-w-0 flex-1 truncate">{feed.title}</span>
+            {matched.length ? (
+                <>
+                    <span
+                        aria-hidden="true"
+                        className="flex shrink-0 items-center gap-0.5 rounded-full bg-star/20 px-1 py-0.5 text-[9px] font-semibold leading-none text-foreground"
+                    >
+                        <Tag className="size-2.5 text-star"/>
+                        {matched.length > 1 ? matched.length : null}
+                    </span>
+                    <span className="sr-only">Matches: {matched.join(', ')}</span>
+                </>
+            ) : null}
         </Button>
+    )
+
+    if (!matched.length) return row
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>{row}</TooltipTrigger>
+            <TooltipContent side="right">Matches: {matched.join(', ')}</TooltipContent>
+        </Tooltip>
     )
 }

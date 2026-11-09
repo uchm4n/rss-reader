@@ -3,6 +3,7 @@ import {cn} from '@/lib/utils'
 import type {Feed, Post} from '@/db/types'
 import {formatRelativeTime} from '@/shared/model/post'
 import {FeedIcon} from './feed-icon'
+import {HighlightedText} from './highlighted-text'
 
 interface PostRowProps {
     post: Post
@@ -37,12 +38,14 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
         </span>
 
                 <span className="min-w-0 flex-1 overflow-hidden">
-                <span className="line-clamp-2 wrap-break-word text-sm font-medium leading-5">{post.title}</span>
+                <span className="line-clamp-2 wrap-break-word text-sm font-medium leading-5">
+                    <HighlightedText text={post.title} words={feed?.matchWords}/>
+                </span>
 
                     {post.excerpt ? (
                         <span
                             className="mt-1 line-clamp-2 wrap-break-word text-xs leading-5 text-muted-foreground">
-                        {post.excerpt}
+                        <HighlightedText text={post.excerpt} words={feed?.matchWords}/>
                     </span>
                     ) : null}
 
