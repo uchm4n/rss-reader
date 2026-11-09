@@ -4,6 +4,7 @@ import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import type {Folder} from '@/db/types'
 import {sendCommand} from '../lib/commands'
+import {MatchWordsInput} from './match-words-input'
 
 export const INTERVAL_OPTIONS = [
     {value: 30, label: '30 seconds'},
@@ -33,6 +34,7 @@ export function AddFeedForm({
     const [url, setUrl] = useState(initialUrl)
     const [folderId, setFolderId] = useState('')
     const [refreshInterval, setRefreshInterval] = useState('')
+    const [matchWords, setMatchWords] = useState<string[]>([])
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -48,9 +50,11 @@ export function AddFeedForm({
                 url,
                 folderId: folderId || null,
                 refreshInterval: refreshInterval ? Number(refreshInterval) : null,
+                matchWords,
                 sourceTabId
             })
             setUrl('')
+            setMatchWords([])
             onAdded()
             toast.success('Feed added')
         } catch (error) {
@@ -82,7 +86,7 @@ export function AddFeedForm({
                     </Button>
                 ) : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
                 <select
                     aria-label="Feed folder"
                     className={selectClass}
@@ -109,7 +113,12 @@ export function AddFeedForm({
                         </option>
                     ))}
                 </select>
+                <MatchWordsInput value={matchWords} onChange={setMatchWords}/>
             </div>
+            <p className="text-[11px] text-muted-foreground">
+                Match words are checked against post titles and content. Press Enter or
+                comma to add.
+            </p>
             {error ? <p className="text-[11px] text-destructive">{error}</p> : null}
         </form>
     )

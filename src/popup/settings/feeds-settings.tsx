@@ -8,6 +8,7 @@ import {useFeeds} from '../hooks/use-feeds'
 import {useFolders} from '../hooks/use-folders'
 import {sendCommand} from '../lib/commands'
 import {AddFeedForm, INTERVAL_OPTIONS} from './add-feed-form'
+import {MatchWordsInput} from './match-words-input'
 
 const selectClass =
     'h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground'
@@ -16,6 +17,7 @@ interface FeedDraft {
     title: string
     folderId: string
     refreshInterval: string
+    matchWords: string[]
 }
 
 function message(error: unknown, fallback: string): string {
@@ -35,7 +37,8 @@ export function FeedsSettings({
     const [draft, setDraft] = useState<FeedDraft>({
         title: '',
         folderId: '',
-        refreshInterval: ''
+        refreshInterval: '',
+        matchWords: []
     })
 
     const beginEdit = (feed: Feed) => {
@@ -43,7 +46,8 @@ export function FeedsSettings({
         setDraft({
             title: feed.title,
             folderId: feed.folderId ?? '',
-            refreshInterval: feed.refreshInterval ? String(feed.refreshInterval) : ''
+            refreshInterval: feed.refreshInterval ? String(feed.refreshInterval) : '',
+            matchWords: feed.matchWords ?? []
         })
     }
 
@@ -57,7 +61,8 @@ export function FeedsSettings({
                 patch: {
                     title: draft.title,
                     folderId: draft.folderId || null,
-                    refreshInterval: draft.refreshInterval ? Number(draft.refreshInterval) : null
+                    refreshInterval: draft.refreshInterval ? Number(draft.refreshInterval) : null,
+                    matchWords: draft.matchWords
                 }
             })
             setEditingId(null)
@@ -144,6 +149,12 @@ export function FeedsSettings({
                                         ))}
                                     </select>
                                 </div>
+                                <MatchWordsInput
+                                    value={draft.matchWords}
+                                    onChange={(matchWords) =>
+                                        setDraft((previous) => ({...previous, matchWords}))
+                                    }
+                                />
                                 <div className="flex items-center gap-2">
                                     <Button size="sm" onClick={() => void save()}>
                                         Save
