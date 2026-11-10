@@ -17,11 +17,6 @@ export interface HnThread {
     comments: HnComment[]
 }
 
-export interface HnEntry {
-    comment: HnComment
-    depth: number
-}
-
 export const HN_VISIBLE_COMMENTS = 200
 export const HN_ITEM_URL = 'https://news.ycombinator.com/item?id='
 export const HN_API_URL = 'https://hn.algolia.com/api/v1/items'
@@ -131,45 +126,6 @@ export function parseHnThread(value: unknown): HnThread | null {
         text: stringOrNull(data.text),
         comments
     }
-}
-
-export function flattenHnComments(comments: HnComment[]): HnEntry[] {
-    const entries: HnEntry[] = []
-
-    const walk = (list: HnComment[], depth: number) => {
-        for (const comment of list) {
-            entries.push({comment, depth})
-            walk(comment.children, depth + 1)
-        }
-    }
-
-    walk(comments, 0)
-    return entries
-}
-
-export function visibleHnEntries(
-    entries: HnEntry[],
-    collapsed: ReadonlySet<number>
-): HnEntry[] {
-    const visible: HnEntry[] = []
-    const hiddenDepths: number[] = []
-
-    for (const entry of entries) {
-        while (
-            hiddenDepths.length > 0 &&
-            hiddenDepths[hiddenDepths.length - 1] >= entry.depth
-        ) {
-            hiddenDepths.pop()
-        }
-        if (hiddenDepths.length > 0) continue
-
-        visible.push(entry)
-        if (collapsed.has(entry.comment.id) && entry.comment.children.length > 0) {
-            hiddenDepths.push(entry.depth)
-        }
-    }
-
-    return visible
 }
 
 export interface FetchHnThreadOptions {

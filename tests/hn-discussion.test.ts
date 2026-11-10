@@ -82,7 +82,7 @@ describe('HnThreadView', () => {
     expect(html).toContain(
       'href="https://news.ycombinator.com/item?id=50406862"'
     )
-    expect(html).toContain('class="hn-comment-author"')
+    expect(html).toContain('class="discussion-comment-author"')
   })
 
   it('offers a fold control only on comments with replies', () => {

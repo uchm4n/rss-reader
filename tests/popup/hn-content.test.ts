@@ -2,12 +2,9 @@
 import {describe, expect, it, vi} from 'vitest'
 import {
   fetchHnThread,
-  flattenHnComments,
   hnItemId,
   isHnCommentsOnly,
-  parseHnThread,
-  visibleHnEntries,
-  type HnThread
+  parseHnThread
 } from '../../src/popup/lib/hn-content'
 
 const COMMENTS_LINK =
@@ -139,70 +136,6 @@ describe('parseHnThread', () => {
     expect(parseHnThread('nope')).toBeNull()
     expect(parseHnThread({})).toBeNull()
     expect(parseHnThread({id: '7'})).toBeNull()
-  })
-})
-
-describe('flattenHnComments', () => {
-  it('flattens comments in display order with their depth', () => {
-    const thread = parseHnThread(STORY) as HnThread
-
-    expect(
-      flattenHnComments(thread.comments).map(({comment, depth}) => ({
-        id: comment.id,
-        depth
-      }))
-    ).toEqual([
-      {id: 50406862, depth: 0},
-      {id: 50406906, depth: 1},
-      {id: 50408007, depth: 0}
-    ])
-  })
-})
-
-describe('visibleHnEntries', () => {
-  const entries = flattenHnComments((parseHnThread(STORY) as HnThread).comments)
-  const nested = parseHnThread({
-    id: 1,
-    children: [
-      {
-        id: 2,
-        text: 'root',
-        children: [
-          {
-            id: 3,
-            text: 'child',
-            children: [{id: 4, text: 'grandchild', children: []}]
-          },
-          {id: 5, text: 'sibling', children: []}
-        ]
-      },
-      {id: 6, text: 'next root', children: []}
-    ]
-  }) as HnThread
-  const nestedEntries = flattenHnComments(nested.comments)
-
-  it('keeps everything when nothing is collapsed', () => {
-    expect(visibleHnEntries(entries, new Set()).map(({comment}) => comment.id)).toEqual([
-      50406862, 50406906, 50408007
-    ])
-  })
-
-  it('hides the collapsed subtree and keeps following siblings', () => {
-    expect(
-      visibleHnEntries(entries, new Set([50406862])).map(({comment}) => comment.id)
-    ).toEqual([50406862, 50408007])
-  })
-
-  it('hides only a nested subtree', () => {
-    expect(
-      visibleHnEntries(nestedEntries, new Set([3])).map(({comment}) => comment.id)
-    ).toEqual([2, 3, 5, 6])
-  })
-
-  it('ignores a collapsed leaf', () => {
-    expect(
-      visibleHnEntries(nestedEntries, new Set([4])).map(({comment}) => comment.id)
-    ).toEqual([2, 3, 4, 5, 6])
   })
 })
 

@@ -21,7 +21,7 @@ export function flattenDiscussion<T extends ThreadComment>(
                 depth,
                 hasReplies: comment.children.length > 0
             })
-            walk(comment.children, depth + 1)
+            walk(comment.children as T[], depth + 1)
         }
     }
 

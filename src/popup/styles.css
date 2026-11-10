@@ -741,14 +741,14 @@ body {
     background: linear-gradient(135deg, #1f1f1f, #3a0d0d);
 }
 
-.hn-discussion {
+.discussion-section {
     min-width: 0;
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border);
 }
 
-.hn-discussion-meta {
+.discussion-meta {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -757,13 +757,13 @@ body {
     font-size: 0.75rem;
 }
 
-.hn-discussion-meta a {
+.discussion-meta a {
     margin-left: auto;
     color: var(--primary);
     text-decoration: none;
 }
 
-.hn-discussion-meta a:hover {
+.discussion-meta a:hover {
     text-decoration: underline;
 }
 
@@ -771,28 +771,28 @@ body {
     margin-top: 0.75rem;
 }
 
-.hn-comments {
+.discussion-comments {
     display: flex;
     flex-direction: column;
     gap: 0.9rem;
     margin-top: 1rem;
 }
 
-.hn-comment {
+.discussion-comment {
     min-width: 0;
 }
 
-.hn-comment-root:not(:first-child) {
+.discussion-comment-root:not(:first-child) {
     padding-top: 0.9rem;
     border-top: 1px solid var(--border);
 }
 
-.hn-comment-reply {
+.discussion-comment-reply {
     padding-left: 0.75rem;
     border-left: 2px solid var(--border);
 }
 
-.hn-comment-meta {
+.discussion-comment-meta {
     display: flex;
     align-items: center;
     gap: 0.35rem;
@@ -800,16 +800,16 @@ body {
     font-size: 0.75rem;
 }
 
-.hn-comment-meta a {
+.discussion-comment-meta a {
     color: inherit;
     text-decoration: none;
 }
 
-.hn-comment-meta a:hover {
+.discussion-comment-meta a:hover {
     text-decoration: underline;
 }
 
-.hn-comment-toggle {
+.discussion-comment-toggle {
     flex: none;
     margin: -0.1rem 0 -0.1rem -0.2rem;
     padding: 0.1rem 0.2rem;
@@ -821,31 +821,31 @@ body {
     cursor: pointer;
 }
 
-.hn-comment-toggle:hover {
+.discussion-comment-toggle:hover {
     color: var(--foreground);
 }
 
-.hn-comment-meta .hn-comment-author {
+.discussion-comment-meta .discussion-comment-author {
     color: var(--foreground);
     font-weight: 500;
 }
 
-.hn-comment-body {
+.discussion-comment-body {
     margin-top: 0.15rem;
 }
 
-.hn-comment-body .post-content {
+.discussion-comment-body .post-content {
     font-size: 0.875rem;
     line-height: 1.6;
 }
 
-.hn-comment-deleted,
-.hn-discussion-status {
+.discussion-comment-deleted,
+.discussion-status {
     color: var(--muted-foreground);
     font-size: 0.875rem;
 }
 
-.hn-more {
+.discussion-more {
     margin-top: 1rem;
 }
 
