@@ -89,6 +89,46 @@ describe('parseRedditThread', () => {
     })
   })
 
+  it('normalizes deleted/removed authors and bodies but keeps children', () => {
+    const payload = structuredClone(PAYLOAD) as any
+    payload[1].data.children[0].data.author = '[deleted]'
+    payload[1].data.children[0].data.body_html =
+      '<div class="md"><p>[deleted]</p></div>'
+
+    const thread = parseRedditThread(payload, 'abc123')
+
+    expect(thread?.comments[0]).toMatchObject({
+      id: 'c1',
+      author: null,
+      bodyHtml: null
+    })
+    expect(thread?.comments[0].children).toHaveLength(1)
+  })
+
+  it('marks nested more nodes without creating empty comments', () => {
+    const payload = structuredClone(PAYLOAD) as any
+    payload[1].data.children[0].data.replies.data.children.push({
+      kind: 'more',
+      data: {count: 2, children: ['c9']}
+    })
+
+    const thread = parseRedditThread(payload, 'abc123')
+
+    expect(thread?.hasMore).toBe(true)
+    expect(thread?.comments[0].children.map((comment) => comment.id)).toEqual([
+      'c2'
+    ])
+  })
+
+  it('skips malformed comments and keeps valid siblings', () => {
+    const payload = structuredClone(PAYLOAD) as any
+    payload[1].data.children.unshift({kind: 't1', data: {}})
+
+    const thread = parseRedditThread(payload, 'abc123')
+
+    expect(thread?.comments.map((comment) => comment.id)).toEqual(['c1'])
+  })
+
   it('rejects malformed payloads', () => {
     expect(parseRedditThread(null, 'abc123')).toBeNull()
     expect(parseRedditThread({}, 'abc123')).toBeNull()

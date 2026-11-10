@@ -149,6 +149,7 @@ describe('PostArticle HN integration', () => {
     expect(html).toContain('Loading discussion')
     expect(html).not.toContain('>Comments</a>')
     expect(html).not.toContain('No content available')
+    expect(html).not.toContain('Reddit discussion')
   })
 
   it('keeps non-HN post content unchanged', () => {

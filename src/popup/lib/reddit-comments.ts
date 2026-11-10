@@ -42,6 +42,23 @@ function stringOrNull(value: unknown): string | null {
     return typeof value === 'string' ? value : null
 }
 
+function authorOrNull(value: unknown): string | null {
+    const author = stringOrNull(value)
+    if (!author) return null
+    return /^\[(?:deleted|removed)\]$/i.test(author.trim()) ? null : author
+}
+
+function bodyOrNull(value: unknown): string | null {
+    const html = stringOrNull(value)
+    if (!html) return null
+    const text = html
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+    return text === '[deleted]' || text === '[removed]' ? null : html
+}
+
 function numberOrNull(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -86,8 +103,8 @@ function parseComment(value: unknown, state: ParseState): RedditComment | null {
 
     return {
         id: data.id,
-        author: stringOrNull(data.author),
-        bodyHtml: stringOrNull(data.body_html),
+        author: authorOrNull(data.author),
+        bodyHtml: bodyOrNull(data.body_html),
         score: numberOrNull(data.score),
         createdAt: timestamp(data.created_utc),
         permalink: redditUrl(data.permalink),

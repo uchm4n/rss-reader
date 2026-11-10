@@ -51,7 +51,7 @@ function renderView(overrides: Partial<React.ComponentProps<typeof RedditThreadV
   return renderToStaticMarkup(
     React.createElement(RedditThreadView, {
       thread: THREAD,
-      limit: 200,
+      loadedLimit: 200,
       refreshing: false,
       refreshError: false,
       onLoadMore: () => {},
@@ -93,8 +93,8 @@ describe('RedditThreadView', () => {
   })
 
   it('shows Load more at 200 and Refresh at the 500 ceiling', () => {
-    expect(renderView({limit: 200})).toContain('Load more')
-    expect(renderView({limit: 500})).toContain('Refresh')
+    expect(renderView({loadedLimit: 200})).toContain('Load more')
+    expect(renderView({loadedLimit: 500})).toContain('Refresh')
   })
 
   it('disables the button while refreshing and reports refresh errors', () => {
@@ -104,7 +104,10 @@ describe('RedditThreadView', () => {
     )
 
     expect(button?.disabled).toBe(true)
-    expect(renderView({refreshError: true})).toContain(
+    expect(renderView({loadedLimit: 200, refreshError: true})).toContain(
+      'Couldn’t load more comments.'
+    )
+    expect(renderView({loadedLimit: 500, refreshError: true})).toContain(
       'Couldn’t refresh comments.'
     )
   })

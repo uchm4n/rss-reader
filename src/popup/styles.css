@@ -861,6 +861,15 @@ body {
     font-size: 0.875rem;
 }
 
+.discussion-status a {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.discussion-status a:hover {
+    text-decoration: none;
+}
+
 .discussion-more {
     margin-top: 1rem;
 }

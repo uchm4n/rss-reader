@@ -56,7 +56,8 @@ describe('redditPostId', () => {
   })
 })
 
-describe('parseRedditCard', () => {  it('parses a video card from the real RSS shape', () => {
+describe('parseRedditCard', () => {
+  it('parses a video card from the real RSS shape', () => {
     const parsed = parseRedditCard(VIDEO_CARD)
 
     expect(parsed).toMatchObject({

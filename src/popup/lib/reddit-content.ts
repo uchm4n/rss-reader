@@ -175,7 +175,8 @@ export function renderRedditContent(
 export function parseRedditCard(
     html: string,
     fallbackImageUrl?: string | null
-): RedditCard | null {    const doc = new DOMParser().parseFromString(html, 'text/html')
+): RedditCard | null {
+    const doc = new DOMParser().parseFromString(html, 'text/html')
     if (!doc.body.textContent?.includes('submitted by')) return null
 
     const anchors = [...doc.querySelectorAll<HTMLAnchorElement>('a[href]')]

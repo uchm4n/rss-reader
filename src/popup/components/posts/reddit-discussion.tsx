@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import {Button} from '@/components/ui/button'
 import {formatRelativeTime} from '@/shared/model/post'
 import {
@@ -84,13 +84,13 @@ function RedditCommentItem({
 
 export function RedditThreadView({
     thread,
-    limit,
+    loadedLimit,
     refreshing,
     refreshError,
     onLoadMore
 }: {
     thread: RedditThread
-    limit: number
+    loadedLimit: number
     refreshing: boolean
     refreshError: boolean
     onLoadMore: () => void
@@ -103,7 +103,7 @@ export function RedditThreadView({
         total !== null && total > entries.length
             ? `${entries.length} of ${total} comments`
             : `${entries.length} ${entries.length === 1 ? 'comment' : 'comments'}`
-    const atMax = limit >= REDDIT_MAX_COMMENTS
+    const atMax = loadedLimit >= REDDIT_MAX_COMMENTS
 
     return (
         <section
@@ -125,7 +125,11 @@ export function RedditThreadView({
             </div>
 
             {refreshError ? (
-                <p className="discussion-status">Couldn’t refresh comments.</p>
+                <p className="discussion-status">
+                    {loadedLimit < REDDIT_MAX_COMMENTS
+                        ? 'Couldn’t load more comments.'
+                        : 'Couldn’t refresh comments.'}
+                </p>
             ) : null}
 
             {entries.length ? (
@@ -148,22 +152,35 @@ export function RedditThreadView({
 }
 
 export function RedditDiscussion({postId}: { postId: string }) {
-    const [limit, setLimit] = useState(REDDIT_INITIAL_COMMENTS)
+    const [requestedLimit, setRequestedLimit] = useState(REDDIT_INITIAL_COMMENTS)
+    const [loadedLimit, setLoadedLimit] = useState(REDDIT_INITIAL_COMMENTS)
     const {state, reload} = useDiscussionThread(
-        (signal) => fetchRedditThread(postId, {limit, signal}),
-        [postId, limit]
+        (signal) => fetchRedditThread(postId, {limit: requestedLimit, signal}),
+        [postId, requestedLimit]
     )
 
+    useEffect(() => {
+        if (state.status === 'ready' && !state.refreshing && !state.refreshError) {
+            setLoadedLimit(requestedLimit)
+        }
+    }, [state, requestedLimit])
+
     const loadMore = () => {
-        if (limit < REDDIT_MAX_COMMENTS) setLimit(REDDIT_MAX_COMMENTS)
-        else reload()
+        if (
+            loadedLimit < REDDIT_MAX_COMMENTS &&
+            requestedLimit < REDDIT_MAX_COMMENTS
+        ) {
+            setRequestedLimit(REDDIT_MAX_COMMENTS)
+        } else {
+            reload()
+        }
     }
 
     if (state.status === 'ready') {
         return (
             <RedditThreadView
                 thread={state.thread}
-                limit={limit}
+                loadedLimit={loadedLimit}
                 refreshing={state.refreshing}
                 refreshError={state.refreshError}
                 onLoadMore={loadMore}
