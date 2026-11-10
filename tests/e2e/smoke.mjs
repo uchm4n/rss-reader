@@ -642,8 +642,28 @@ async function main() {
         (await evaluate(`document.querySelectorAll('[data-slot="post-match-dot"]').length`)) > 0,
       'watch-word dot did not appear on matching post rows'
     )
+    const matchDotPoint = await evaluate(`(() => {
+      const dot = document.querySelector('[data-slot="post-match-dot"]')
+      if (!dot) return null
+      const rect = dot.getBoundingClientRect()
+      return {x: rect.x + rect.width / 2, y: rect.y + rect.height / 2}
+    })()`)
+    assert(matchDotPoint, 'match dot was not positioned for the hover check')
+    await popup.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: matchDotPoint.x,
+      y: matchDotPoint.y
+    })
+    await waitFor(
+      () =>
+        evaluate(
+          `[...document.querySelectorAll('[data-slot="tooltip-content"]')].some((element) => element.textContent === 'Matched: reddit')`
+        ),
+      'post match tooltip did not appear after hovering the yellow dot',
+      3_000
+    )
     console.log('   submitting the form added the feed and stayed in Settings')
-    console.log('   the watch word appeared as a feed indicator, post dot and highlight')
+    console.log('   the watch word appeared as a feed indicator, post dot and hover tooltip')
 
     await popup.send('Page.reload', {ignoreCache: true})
     const activeDiscovery = await waitFor(async () => {

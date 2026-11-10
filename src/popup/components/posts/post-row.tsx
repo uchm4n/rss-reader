@@ -1,5 +1,10 @@
 import {useMemo} from 'react'
 import {Star} from 'lucide-react'
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger
+} from '@/components/ui/tooltip'
 import {cn} from '@/lib/utils'
 import type {Feed, Post} from '@/db/types'
 import {findMatchedWords} from '@/shared/model/match-words'
@@ -38,22 +43,28 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
                     className="mt-1.5 flex size-2 shrink-0 items-center"
                     aria-hidden={hasMatch ? undefined : true}
                 >
-                    <span className="flex -space-x-1">
+                    <span className="flex -space-x-0.5">
                         {!post.status ? (
                             <span
                                 data-slot="post-unread-dot"
-                                className="size-2 rounded-full bg-unread ring-2 ring-background"
+                                className="relative z-10 size-2 rounded-full bg-unread ring-2 ring-background"
                                 aria-hidden="true"
                             />
                         ) : null}
                         {hasMatch ? (
-                            <span
-                                data-slot="post-match-dot"
-                                role="img"
-                                aria-label={`Matched: ${matchedWords.join(', ')}`}
-                                title={`Matched: ${matchedWords.join(', ')}`}
-                                className="size-2 rounded-full bg-star ring-2 ring-background"
-                            />
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <span
+                                        data-slot="post-match-dot"
+                                        role="img"
+                                        aria-label={`Matched: ${matchedWords.join(', ')}`}
+                                        className="relative z-0 size-2 rounded-full bg-star ring-2 ring-background"
+                                    />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" sideOffset={4}>
+                                    Matched: {matchedWords.join(', ')}
+                                </TooltipContent>
+                            </Tooltip>
                         ) : null}
                     </span>
                 </span>
