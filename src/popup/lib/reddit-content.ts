@@ -68,6 +68,21 @@ function redditPostRef(raw: string | null): RedditPostRef | null {
     return {postId, postUrl: `https://www.reddit.com${path}`}
 }
 
+export function redditPostId(post: {
+    link: string | null
+    contentHtml: string | null
+}): string | null {
+    if (post.contentHtml) {
+        const doc = new DOMParser().parseFromString(post.contentHtml, 'text/html')
+        for (const anchor of doc.querySelectorAll<HTMLAnchorElement>('a[href]')) {
+            const ref = redditPostRef(anchor.getAttribute('href'))
+            if (ref) return ref.postId
+        }
+    }
+
+    return redditPostRef(post.link)?.postId ?? null
+}
+
 function outboundFor(
     raw: string | null,
     postId: string
@@ -160,8 +175,7 @@ export function renderRedditContent(
 export function parseRedditCard(
     html: string,
     fallbackImageUrl?: string | null
-): RedditCard | null {
-    const doc = new DOMParser().parseFromString(html, 'text/html')
+): RedditCard | null {    const doc = new DOMParser().parseFromString(html, 'text/html')
     if (!doc.body.textContent?.includes('submitted by')) return null
 
     const anchors = [...doc.querySelectorAll<HTMLAnchorElement>('a[href]')]

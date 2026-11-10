@@ -1,7 +1,11 @@
 // @vitest-environment jsdom
 import {describe, expect, it} from 'vitest'
 import {renderPostContent} from '../../src/popup/lib/post-content'
-import {parseRedditCard, renderRedditContent} from '../../src/popup/lib/reddit-content'
+import {
+  parseRedditCard,
+  redditPostId,
+  renderRedditContent
+} from '../../src/popup/lib/reddit-content'
 
 function htmlOf(result: ReturnType<typeof renderPostContent>): string {
   if (result.kind === 'text') throw new Error('Expected rendered HTML')
@@ -19,8 +23,40 @@ function card(link: string, image = true): string {
   }</a></td><td><div class="md"><p>Summary text</p></div> submitted by <a href="https://www.reddit.com/user/foo">/u/foo</a> <br/><span><a href="${link}">[link]</a></span></td></tr></table>`
 }
 
-describe('parseRedditCard', () => {
-  it('parses a video card from the real RSS shape', () => {
+describe('redditPostId', () => {
+  it('finds the post id from Reddit content anchors', () => {
+    expect(
+      redditPostId({link: 'https://example.com/story', contentHtml: VIDEO_CARD})
+    ).toBe('1wen3tq')
+  })
+
+  it('falls back to the post link', () => {
+    expect(redditPostId({link: POST_URL, contentHtml: null})).toBe('1wen3tq')
+  })
+
+  it('rejects lookalike hosts, comment permalinks and non-HTTPS URLs', () => {
+    expect(
+      redditPostId({
+        link: 'https://reddit.com.evil.test/r/WTF/comments/1wen3tq/title/',
+        contentHtml: null
+      })
+    ).toBeNull()
+    expect(
+      redditPostId({
+        link: 'https://www.reddit.com/r/WTF/comments/1wen3tq/title/p9f26nb/',
+        contentHtml: null
+      })
+    ).toBeNull()
+    expect(
+      redditPostId({
+        link: 'http://www.reddit.com/r/WTF/comments/1wen3tq/title/',
+        contentHtml: null
+      })
+    ).toBeNull()
+  })
+})
+
+describe('parseRedditCard', () => {  it('parses a video card from the real RSS shape', () => {
     const parsed = parseRedditCard(VIDEO_CARD)
 
     expect(parsed).toMatchObject({
