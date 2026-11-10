@@ -111,6 +111,18 @@ describe('RedditThreadView', () => {
       'Couldn’t refresh comments.'
     )
   })
+
+  it('renders media links inside Reddit comment bodies', () => {
+    const thread = structuredClone(THREAD)
+    thread.comments[1].bodyHtml =
+      '<p><a href="https://giphy.com/gifs/y95xaEzMuyHAc">gif</a></p>'
+
+    const html = renderView({thread})
+
+    expect(html).toContain(
+      'https://media.giphy.com/media/y95xaEzMuyHAc/giphy.gif'
+    )
+  })
 })
 
 describe('PostArticle Reddit integration', () => {

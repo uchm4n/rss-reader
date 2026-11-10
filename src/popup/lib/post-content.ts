@@ -75,6 +75,52 @@ function directVideoUrl(raw: string): string | null {
     }
 }
 
+function directImageUrl(raw: string): string | null {
+    try {
+        const url = new URL(raw)
+        if (url.protocol !== 'https:') return null
+        if (!/\.(gif|png|jpe?g|webp|avif)$/i.test(url.pathname)) return null
+        return url.toString()
+    } catch {
+        return null
+    }
+}
+
+function giphyGifUrl(raw: string): string | null {
+    try {
+        const url = new URL(raw)
+        if (url.protocol !== 'https:') return null
+        if (!['giphy.com', 'www.giphy.com'].includes(url.hostname.toLowerCase())) {
+            return null
+        }
+
+        const segments = url.pathname.split('/').filter(Boolean)
+        if (segments[0] !== 'gifs' || !segments[1]) return null
+
+        const id = segments[1].split('-').at(-1)
+        if (!id || !/^[A-Za-z0-9]{5,}$/.test(id)) return null
+        return `https://media.giphy.com/media/${id}/giphy.gif`
+    } catch {
+        return null
+    }
+}
+
+function createImageLink(anchor: Element, src: string): HTMLAnchorElement {
+    const link = anchor.cloneNode(false) as HTMLAnchorElement
+    link.classList.add('media-image-link')
+
+    const image = document.createElement('img')
+    image.setAttribute('src', src)
+    image.setAttribute('alt', '')
+    image.className = 'media-image'
+    image.setAttribute('loading', 'lazy')
+    image.setAttribute('decoding', 'async')
+    image.setAttribute('referrerpolicy', 'no-referrer')
+    link.append(image)
+
+    return link
+}
+
 function insertionPoint(anchor: Element): Element {
     const table = anchor.closest('table')
     if (table) {
@@ -200,6 +246,31 @@ export function enhancePostHtml(html: string): string {
         audio.setAttribute('controls', '')
         audio.setAttribute('preload', 'metadata')
         audio.removeAttribute('autoplay')
+    }
+
+    const seenImages = new Set<string>()
+    for (const anchor of root.querySelectorAll('a[href]')) {
+        const href = anchor.getAttribute('href')
+        if (!href) continue
+        if (
+            anchor.closest(
+                '.reddit-card, .media-card, .code-block, pre, code'
+            )
+        ) {
+            continue
+        }
+
+        const imageUrl = giphyGifUrl(href) ?? directImageUrl(href)
+        if (!imageUrl) continue
+
+        const block = insertionPoint(anchor)
+        if (block.querySelector('img, iframe, video, .media-card')) continue
+        if (seenImages.has(imageUrl)) continue
+        seenImages.add(imageUrl)
+
+        const link = createImageLink(anchor, imageUrl)
+        if (shouldReplaceBlock(block, anchor)) block.replaceWith(link)
+        else block.after(link)
     }
 
     const seenMedia = new Set<string>()

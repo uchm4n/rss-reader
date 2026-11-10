@@ -329,4 +329,111 @@ describe('renderPostContent', () => {
     expect(container.querySelector('.reddit-summary .media-card')).not.toBeNull()
     expect(container.querySelector('iframe')).toBeNull()
   })
+
+  it('renders a Giphy page link as a linked GIF image', () => {
+    const result = renderPostContent(
+      '<p><a href="https://giphy.com/gifs/y95xaEzMuyHAc">gif</a></p>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+    const link = container.querySelector('a.media-image-link')
+    const image = container.querySelector('img.media-image')
+
+    expect(link?.getAttribute('href')).toBe(
+      'https://giphy.com/gifs/y95xaEzMuyHAc'
+    )
+    expect(image?.getAttribute('src')).toBe(
+      'https://media.giphy.com/media/y95xaEzMuyHAc/giphy.gif'
+    )
+    expect(image?.getAttribute('loading')).toBe('lazy')
+    expect(image?.getAttribute('decoding')).toBe('async')
+    expect(image?.getAttribute('referrerpolicy')).toBe('no-referrer')
+    expect(container.querySelector('p')).toBeNull()
+  })
+
+  it('extracts the GIF id from a Giphy slug URL', () => {
+    const result = renderPostContent(
+      '<p><a href="https://giphy.com/gifs/a-slug-y95xaEzMuyHAc">gif</a></p>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelector('img.media-image')?.getAttribute('src')).toBe(
+      'https://media.giphy.com/media/y95xaEzMuyHAc/giphy.gif'
+    )
+  })
+
+  it('renders direct image links as images', () => {
+    for (const url of [
+      'https://example.com/cat.gif',
+      'https://example.com/cat.png',
+      'https://example.com/cat.jpg',
+      'https://example.com/cat.webp'
+    ]) {
+      const result = renderPostContent(
+        `<p><a href="${url}">image</a></p>`,
+        'html'
+      )
+      const container = document.createElement('div')
+      container.innerHTML = htmlOf(result)
+
+      expect(container.querySelector('img.media-image')?.getAttribute('src')).toBe(url)
+    }
+  })
+
+  it('keeps prose and appends the image after the block', () => {
+    const result = renderPostContent(
+      '<p>Look <a href="https://giphy.com/gifs/y95xaEzMuyHAc">this</a> now</p>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelector('p')?.textContent).toContain('Look this now')
+    expect(container.querySelector('img.media-image')).not.toBeNull()
+    expect(container.querySelectorAll('img.media-image')).toHaveLength(1)
+  })
+
+  it('does not duplicate the same image link', () => {
+    const result = renderPostContent(
+      '<p><a href="https://giphy.com/gifs/y95xaEzMuyHAc">one</a></p><p><a href="https://giphy.com/gifs/y95xaEzMuyHAc">two</a></p>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelectorAll('img.media-image')).toHaveLength(1)
+  })
+
+  it('rejects insecure, lookalike, invalid Giphy and SVG image links', () => {
+    for (const url of [
+      'http://giphy.com/gifs/y95xaEzMuyHAc',
+      'https://giphy.com.evil.test/gifs/y95xaEzMuyHAc',
+      'https://giphy.com/gifs/',
+      'https://example.com/cat.svg'
+    ]) {
+      const result = renderPostContent(
+        `<p><a href="${url}">image</a></p>`,
+        'html'
+      )
+      const container = document.createElement('div')
+      container.innerHTML = htmlOf(result)
+
+      expect(container.querySelector('img.media-image')).toBeNull()
+    }
+  })
+
+  it('does not insert image previews inside the Reddit card', () => {
+    const result = renderPostContent(
+      '<table><tr><td><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/">post</a></td><td><div class="md"><p>Summary <a href="https://giphy.com/gifs/y95xaEzMuyHAc">gif</a></p></div> submitted by <a href="https://www.reddit.com/user/foo">/u/foo</a></td></tr></table>',
+      'html'
+    )
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+
+    expect(container.querySelector('.reddit-card')).not.toBeNull()
+    expect(container.querySelector('.reddit-card img.media-image')).toBeNull()
+  })
 })

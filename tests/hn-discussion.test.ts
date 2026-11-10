@@ -139,6 +139,28 @@ describe('HnThreadView', () => {
     expect(html).toContain('target="_blank"')
     expect(html).toContain('rel="noreferrer noopener"')
   })
+
+  it('renders media links inside HN comments through PostBody', () => {
+    const thread = parseHnThread({
+      id: 1,
+      children: [
+        {
+          id: 2,
+          author: 'bob',
+          text: '<p><a href="https://giphy.com/gifs/y95xaEzMuyHAc">gif</a></p>',
+          children: []
+        }
+      ]
+    }) as HnThread
+
+    const html = renderToStaticMarkup(
+      React.createElement(HnThreadView, {thread})
+    )
+
+    expect(html).toContain(
+      'https://media.giphy.com/media/y95xaEzMuyHAc/giphy.gif'
+    )
+  })
 })
 
 describe('PostArticle HN integration', () => {
