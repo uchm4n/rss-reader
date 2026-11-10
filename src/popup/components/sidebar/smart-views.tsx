@@ -1,6 +1,8 @@
+import {useLiveQuery} from 'dexie-react-hooks'
 import {Inbox, Rss, Star} from 'lucide-react'
 import {Badge} from '@/components/ui/badge'
 import {Button} from '@/components/ui/button'
+import {countStarredPosts} from '@/db/posts'
 import {cn} from '@/lib/utils'
 import type {Selection} from '@/shared/model/selection'
 import {totalUnread} from '@/shared/model/unread'
@@ -38,6 +40,7 @@ const views = [
 export function SmartViews({selection, onSelect}: SmartViewsProps) {
     const feeds = useFeeds()
     const unreadCount = totalUnread(feeds ?? [])
+    const starredCount = useLiveQuery(() => countStarredPosts(), []) ?? 0
 
     return (
         <div className="space-y-0.5">
@@ -65,6 +68,14 @@ export function SmartViews({selection, onSelect}: SmartViewsProps) {
                                 className="ml-auto h-5 min-w-5 justify-center bg-unread/10 px-1 text-[10px] text-unread"
                             >
                                 {unreadCount}
+                            </Badge>
+                        ) : null}
+                        {view.kind === 'starred' && starredCount > 0 ? (
+                            <Badge
+                                variant="secondary"
+                                className="ml-auto h-5 min-w-5 justify-center bg-star/10 px-1 text-[10px] text-star"
+                            >
+                                {starredCount}
                             </Badge>
                         ) : null}
                     </Button>

@@ -77,6 +77,13 @@ export async function togglePostStar(
     })
 }
 
+export async function countStarredPosts(): Promise<number> {
+    return db.posts
+        .where('[starredKey+publishedAt]')
+        .between([1, Dexie.minKey], [1, Dexie.maxKey])
+        .count()
+}
+
 export async function trimFeedPosts(
     feedId: string,
     retention: number

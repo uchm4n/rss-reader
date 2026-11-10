@@ -424,6 +424,20 @@ async function main() {
       const posts = await dbAll('posts')
       return posts.find((post) => post.title === 'New RSS item 1')?.starred === true
     }, 'star did not persist')
+    await waitFor(
+      () =>
+        evaluate(`(() => {
+          const view = [...document.querySelectorAll('aside button')].find((candidate) =>
+            candidate.textContent?.includes('Starred')
+          )
+          return view?.querySelector('[data-slot="badge"]')?.textContent?.trim() === '1'
+        })()`),
+      'Starred count badge did not show 1'
+    )
+    assert(
+      (await badge()) === '',
+      'starring a post changed the toolbar unread badge'
+    )
 
     await evaluate(`(() => {
       const view = [...document.querySelectorAll('button')].find((candidate) =>

@@ -32,6 +32,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 - Per-feed watch words are matched against post titles, excerpts and feed content with word-form and typo tolerance. Matching feeds show an amber tag in the sidebar, matching posts show a yellow dot beside the unread dot, and matching text is highlighted in the post list and reader. The yellow dot stays after the post is read.
 - Pin a post (pin icon before the star) to open it in a separate resizable window that stays open. It opens as a normal 600×700 window near the popup, keeps only the article, and has a slim header with an X to close it. One window per post; pinning the same post again focuses its existing window.
 - With **Remember app state** enabled, the popup reopens on the last view, with collapsed folders and the open post restored.
+- The **Starred** smart view shows its own count badge. It counts retained starred posts and does not affect the toolbar unread badge.
 
 ## Development
 

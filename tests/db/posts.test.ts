@@ -1,5 +1,6 @@
 import {afterEach, describe, expect, it} from 'vitest'
 import {
+  countStarredPosts,
   markPostsRead,
   trimFeedPosts,
   setPostStatus,
@@ -117,6 +118,30 @@ describe('post actions', () => {
     await trimFeedPosts('feed-1', 1)
 
     expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual([])
+  })
+
+  it('counts starred posts without changing unread counts', async () => {
+    await seedFeed({unreadCount: 2})
+    await db.posts.bulkAdd([
+      postFixture({
+        id: 'starred-1',
+        guid: 'starred-1',
+        starred: true,
+        starredKey: 1,
+        starredAt: 1
+      }),
+      postFixture({
+        id: 'starred-2',
+        guid: 'starred-2',
+        starred: true,
+        starredKey: 1,
+        starredAt: 2
+      }),
+      postFixture({id: 'unstarred', guid: 'unstarred'})
+    ])
+
+    expect(await countStarredPosts()).toBe(2)
+    expect((await db.feeds.get('feed-1'))?.unreadCount).toBe(2)
   })
 
   it('trims the oldest posts and recomputes unread count', async () => {
