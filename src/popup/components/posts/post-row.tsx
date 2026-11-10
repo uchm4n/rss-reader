@@ -1,6 +1,8 @@
+import {useMemo} from 'react'
 import {Star} from 'lucide-react'
 import {cn} from '@/lib/utils'
 import type {Feed, Post} from '@/db/types'
+import {findMatchedWords} from '@/shared/model/match-words'
 import {formatRelativeTime} from '@/shared/model/post'
 import {FeedIcon} from './feed-icon'
 import {HighlightedText} from './highlighted-text'
@@ -13,6 +15,12 @@ interface PostRowProps {
 }
 
 export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
+    const matchedWords = useMemo(
+        () => findMatchedWords(feed?.matchWords, [post]),
+        [post, feed?.matchWords]
+    )
+    const hasMatch = matchedWords.length > 0
+
     return (
         <div
             className={cn(
@@ -25,13 +33,30 @@ export function PostRow({post, feed, onOpen, onToggleStar}: PostRowProps) {
                 onClick={onOpen}
                 className="flex min-w-0 flex-1 items-start gap-3 rounded-md text-left focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
             >
-        <span
-            className={cn(
-                'mt-1.5 size-2 shrink-0 rounded-full',
-                post.status ? 'bg-transparent' : 'bg-unread'
-            )}
-            aria-hidden="true"
-        />
+                <span
+                    data-slot="post-dot-slot"
+                    className="mt-1.5 flex size-2 shrink-0 items-center"
+                    aria-hidden={hasMatch ? undefined : true}
+                >
+                    <span className="flex -space-x-1">
+                        {!post.status ? (
+                            <span
+                                data-slot="post-unread-dot"
+                                className="size-2 rounded-full bg-unread ring-2 ring-background"
+                                aria-hidden="true"
+                            />
+                        ) : null}
+                        {hasMatch ? (
+                            <span
+                                data-slot="post-match-dot"
+                                role="img"
+                                aria-label={`Matched: ${matchedWords.join(', ')}`}
+                                title={`Matched: ${matchedWords.join(', ')}`}
+                                className="size-2 rounded-full bg-star ring-2 ring-background"
+                            />
+                        ) : null}
+                    </span>
+                </span>
 
                 <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-muted">
           <FeedIcon favicon={feed?.favicon ?? null} className="size-4"/>

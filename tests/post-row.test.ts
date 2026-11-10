@@ -66,4 +66,79 @@ describe('PostRow', () => {
       'WordPress'
     )
   })
+
+  it('clusters the unread dot with a yellow match dot', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostRow, {
+        post: postFixture({title: 'WordPress news'}),
+        feed: feedFixture({matchWords: ['WordPress']}),
+        onOpen: () => {},
+        onToggleStar: () => {}
+      })
+    )
+    const document = new JSDOM(html).window.document
+    const match = document.querySelector('[data-slot="post-match-dot"]')
+
+    expect(document.querySelector('[data-slot="post-unread-dot"]')).not.toBeNull()
+    expect(match).not.toBeNull()
+    expect(match?.getAttribute('title')).toBe('Matched: WordPress')
+    expect(match?.getAttribute('aria-label')).toBe('Matched: WordPress')
+  })
+
+  it('keeps the yellow dot after the post is read', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostRow, {
+        post: postFixture({
+          title: 'WordPress news',
+          status: true,
+          statusKey: 1,
+          readAt: 1
+        }),
+        feed: feedFixture({matchWords: ['WordPress']}),
+        onOpen: () => {},
+        onToggleStar: () => {}
+      })
+    )
+    const document = new JSDOM(html).window.document
+
+    expect(document.querySelector('[data-slot="post-unread-dot"]')).toBeNull()
+    expect(document.querySelector('[data-slot="post-match-dot"]')).not.toBeNull()
+  })
+
+  it('shows only the unread dot when the post does not match', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostRow, {
+        post: postFixture({title: 'Other news', excerpt: 'Other body'}),
+        feed: feedFixture({matchWords: ['WordPress']}),
+        onOpen: () => {},
+        onToggleStar: () => {}
+      })
+    )
+    const document = new JSDOM(html).window.document
+
+    expect(document.querySelector('[data-slot="post-unread-dot"]')).not.toBeNull()
+    expect(document.querySelector('[data-slot="post-match-dot"]')).toBeNull()
+  })
+
+  it('keeps the dot slot when a read post has no match', () => {
+    const html = renderToStaticMarkup(
+      React.createElement(PostRow, {
+        post: postFixture({
+          title: 'Other news',
+          excerpt: 'Other body',
+          status: true,
+          statusKey: 1,
+          readAt: 1
+        }),
+        feed: feedFixture({matchWords: ['WordPress']}),
+        onOpen: () => {},
+        onToggleStar: () => {}
+      })
+    )
+    const document = new JSDOM(html).window.document
+
+    expect(document.querySelector('[data-slot="post-dot-slot"]')).not.toBeNull()
+    expect(document.querySelector('[data-slot="post-unread-dot"]')).toBeNull()
+    expect(document.querySelector('[data-slot="post-match-dot"]')).toBeNull()
+  })
 })

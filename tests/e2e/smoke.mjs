@@ -637,8 +637,13 @@ async function main() {
         (await evaluate(`document.querySelectorAll('mark.match-highlight').length`)) > 0,
       'watch-word highlight did not appear in the post list'
     )
+    await waitFor(
+      async () =>
+        (await evaluate(`document.querySelectorAll('[data-slot="post-match-dot"]').length`)) > 0,
+      'watch-word dot did not appear on matching post rows'
+    )
     console.log('   submitting the form added the feed and stayed in Settings')
-    console.log('   the watch word appeared as a feed indicator and post highlight')
+    console.log('   the watch word appeared as a feed indicator, post dot and highlight')
 
     await popup.send('Page.reload', {ignoreCache: true})
     const activeDiscovery = await waitFor(async () => {
