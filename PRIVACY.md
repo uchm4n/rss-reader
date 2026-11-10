@@ -1,6 +1,6 @@
 # Privacy Policy — RSS Reader
 
-Last updated: November 9, 2026
+Last updated: November 10, 2026
 
 RSS Reader is a local-first browser extension for reading RSS, Atom, RDF, and JSON feeds. This policy explains what the extension stores, what it sends over the network, and what it does not do.
 
@@ -37,6 +37,7 @@ The extension fetches content directly from the sources you choose:
 - Favicons and site metadata from the feed’s site.
 - When you open the extension, it may inspect the active tab’s HTML for feed links (discovery). This happens locally and temporarily; the HTML is not sent to the developer.
 - Hacker News discussions from `hn.algolia.com` when you open a Hacker News post.
+- Reddit comments from `www.reddit.com` when you open a Reddit post.
 - YouTube thumbnails from `i.ytimg.com` for YouTube preview cards.
 - Images, video/audio, and embedded media in posts, loaded from their original providers.
 
