@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "minimum_chrome_version": "110",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "name": "RSS Reader",
   "short_name": "RSS Reader",
   "description": "Local-first RSS, Atom, RDF and JSON feed reader. No account, no analytics; feeds and reading state stay in your browser.",
