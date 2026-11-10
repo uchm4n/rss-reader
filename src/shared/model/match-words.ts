@@ -1,7 +1,7 @@
 import type {Post} from '@/db/types.ts'
 import {plainText} from '../parser/html'
 
-export const MAX_MATCH_WORDS = 20
+export const MAX_MATCH_WORDS = 50
 export const MAX_MATCH_WORD_LENGTH = 40
 
 export interface MatchRange {

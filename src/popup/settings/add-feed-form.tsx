@@ -88,7 +88,7 @@ export function AddFeedForm({
                     </Button>
                 ) : null}
             </div>
-            <div className="flex items-start gap-2">
+            <div className="flex items-center gap-2">
                 <select
                     aria-label="Feed folder"
                     className={selectClass}
@@ -115,8 +115,8 @@ export function AddFeedForm({
                         </option>
                     ))}
                 </select>
-                <MatchWordsInput ref={matchWordsRef} value={matchWords} onChange={setMatchWords}/>
             </div>
+            <MatchWordsInput ref={matchWordsRef} value={matchWords} onChange={setMatchWords}/>
             <p className="text-[11px] text-muted-foreground">
                 Matches post titles, excerpts and content. Word forms and small typos are
                 accepted; press Enter or comma to add.

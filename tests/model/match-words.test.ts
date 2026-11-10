@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest'
 import {
   findMatchedWords,
   findMatchRanges,
+  MAX_MATCH_WORDS,
   safeFindMatchedWords,
   sanitizeMatchWords
 } from '../../src/shared/model/match-words'
@@ -119,7 +120,14 @@ describe('sanitizeMatchWords', () => {
   })
 
   it('caps the list and each word', () => {
-    expect(sanitizeMatchWords(Array.from({length: 25}, (_, index) => `word${index}`))).toHaveLength(20)
+    expect(
+      sanitizeMatchWords(Array.from({length: 50}, (_, index) => `word${index}`))
+    ).toHaveLength(50)
+    expect(
+      sanitizeMatchWords(
+        Array.from({length: MAX_MATCH_WORDS + 5}, (_, index) => `word${index}`)
+      )
+    ).toHaveLength(MAX_MATCH_WORDS)
     expect(sanitizeMatchWords(['x'.repeat(50)])[0]).toHaveLength(40)
   })
 })
