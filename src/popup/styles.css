@@ -839,6 +839,22 @@ body {
     line-height: 1.6;
 }
 
+.discussion-comment-body .post-content img,
+.discussion-comment-body .post-content video,
+.discussion-comment-body .post-content iframe {
+    max-height: 40vh;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.discussion-comment-body .post-content .media-card {
+    max-height: 40vh;
+}
+
+.reddit-discussion {
+    min-width: 0;
+}
+
 .discussion-comment-deleted,
 .discussion-status {
     color: var(--muted-foreground);

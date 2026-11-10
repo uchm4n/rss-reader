@@ -18,10 +18,12 @@ import {usePost} from '../../hooks/use-post'
 import {setPostStatus, togglePostStar} from '../../hooks/use-post-actions'
 import {hnItemId, isHnCommentsOnly} from '../../lib/hn-content'
 import {openPinnedPost} from '../../lib/pinned-post'
+import {redditPostId} from '../../lib/reddit-content'
 import {FeedIcon} from './feed-icon'
 import {HighlightedText} from './highlighted-text'
 import {HnDiscussion} from './hn-discussion'
 import {PostBody} from './post-body'
+import {RedditDiscussion} from './reddit-discussion'
 
 interface PostReaderProps {
     postId: string
@@ -173,6 +175,7 @@ export function PostArticle({
     onOpenOriginal: (url: string) => void
 }) {
     const hnId = hnItemId(post)
+    const redditId = hnId === null ? redditPostId(post) : null
     const commentsOnly = hnId !== null && isHnCommentsOnly(post.contentHtml)
 
     return (
@@ -215,7 +218,11 @@ export function PostArticle({
                 </div>
             ) : null}
 
-            {hnId !== null ? <HnDiscussion key={hnId} itemId={hnId}/> : null}
+            {hnId !== null ? (
+                <HnDiscussion key={hnId} itemId={hnId}/>
+            ) : redditId !== null ? (
+                <RedditDiscussion key={redditId} postId={redditId}/>
+            ) : null}
         </article>
     )
 }
