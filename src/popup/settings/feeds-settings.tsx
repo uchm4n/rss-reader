@@ -1,8 +1,10 @@
-import {useRef, useState} from 'react'
+import {useMemo, useRef, useState} from 'react'
+import {Folder, Inbox, Pencil, Trash2} from 'lucide-react'
 import {toast} from 'sonner'
 import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 import type {Feed} from '@/db/types'
+import {buildFeedTree} from '@/shared/model/feed-tree'
 import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../hooks/use-feeds'
 import {useFolders} from '../hooks/use-folders'
@@ -20,6 +22,12 @@ interface FeedDraft {
     refreshInterval: string
     retentionPerFeed: string
     matchWords: string[]
+}
+
+interface FeedGroup {
+    id: string | null
+    name: string
+    feeds: Feed[]
 }
 
 function message(error: unknown, fallback: string): string {
@@ -45,6 +53,29 @@ export function FeedsSettings({
         retentionPerFeed: '',
         matchWords: []
     })
+
+    const groups = useMemo(() => {
+        if (!feeds) return []
+
+        const nodes = buildFeedTree(feeds, folders ?? [])
+        const result: FeedGroup[] = []
+        const rootFeeds = nodes.flatMap((node) => (node.type === 'feed' ? [node.feed] : []))
+
+        if (rootFeeds.length) {
+            result.push({id: null, name: 'No folder', feeds: rootFeeds})
+        }
+
+        for (const node of nodes) {
+            if (node.type !== 'folder' || node.items.length === 0) continue
+            result.push({
+                id: node.id,
+                name: node.name,
+                feeds: node.items.flatMap((item) => (item.type === 'feed' ? [item.feed] : []))
+            })
+        }
+
+        return result
+    }, [feeds, folders])
 
     const beginEdit = (feed: Feed) => {
         setEditingId(feed.id)
@@ -91,8 +122,128 @@ export function FeedsSettings({
         }
     }
 
-    const folderName = (folderId: string | null) =>
-        folders?.find((folder) => folder.id === folderId)?.name ?? 'No folder'
+    const renderFeed = (feed: Feed) =>
+        editingId === feed.id ? (
+            <div key={feed.id} className="space-y-2 p-3">
+                <Input
+                    value={draft.title}
+                    onChange={(event) =>
+                        setDraft((previous) => ({...previous, title: event.target.value}))
+                    }
+                    aria-label="Feed title"
+                    className="h-8 text-xs"
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                    <select
+                        aria-label="Feed folder"
+                        className={selectClass}
+                        value={draft.folderId}
+                        onChange={(event) =>
+                            setDraft((previous) => ({
+                                ...previous,
+                                folderId: event.target.value
+                            }))
+                        }
+                    >
+                        <option value="">No folder</option>
+                        {(folders ?? []).map((folder) => (
+                            <option key={folder.id} value={folder.id}>
+                                {folder.name}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        aria-label="Feed refresh interval"
+                        className={selectClass}
+                        value={draft.refreshInterval}
+                        onChange={(event) =>
+                            setDraft((previous) => ({
+                                ...previous,
+                                refreshInterval: event.target.value
+                            }))
+                        }
+                    >
+                        <option value="">Global interval</option>
+                        {INTERVAL_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                    <Input
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={draft.retentionPerFeed}
+                        onChange={(event) =>
+                            setDraft((previous) => ({
+                                ...previous,
+                                retentionPerFeed: event.target.value
+                            }))
+                        }
+                        placeholder={ settings ? `Limit: ${settings.retentionPerFeed}` : 'Global' }
+                        title="Posts to keep. Leave empty to use the global limit."
+                        aria-label="Feed post limit"
+                        className="h-8 w-24 text-xs"
+                    />
+                </div>
+                <MatchWordsInput
+                    ref={matchWordsRef}
+                    value={draft.matchWords}
+                    onChange={(matchWords) =>
+                        setDraft((previous) => ({...previous, matchWords}))
+                    }
+                />
+                <div className="flex items-center gap-2">
+                    <Button size="sm" onClick={() => void save()}>
+                        Save
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
+                        Cancel
+                    </Button>
+                </div>
+            </div>
+        ) : (
+            <div key={feed.id} className="flex items-start gap-3 p-3">
+                <div className="min-w-0 flex-1 overflow-hidden">
+                    <p className="truncate text-xs font-medium">{feed.title}</p>
+                    <p className="truncate text-[11px] text-muted-foreground">{feed.url}</p>
+                    <p className="mt-1 truncate text-[11px] text-muted-foreground">
+                        {feed.lastFetchedAt
+                            ? `Fetched ${formatRelativeTime(new Date(feed.lastFetchedAt))}`
+                            : 'Never fetched'}
+                        {feed.retentionPerFeed ? ` · ${feed.retentionPerFeed} posts` : ''}
+                    </p>
+                    {feed.lastError ? (
+                        <p className="mt-1 truncate text-[11px] text-destructive">
+                            {feed.lastError}
+                        </p>
+                    ) : null}
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => beginEdit(feed)}
+                        aria-label={`Edit ${feed.title}`}
+                        className="border-sky-500/30 text-xs text-sky-700 hover:bg-sky-500/10 hover:text-sky-800 dark:border-sky-400/25 dark:text-sky-300 dark:hover:bg-sky-400/10 dark:hover:text-sky-200"
+                    >
+                        <Pencil className="size-3.5"/>
+                        Edit
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void remove(feed)}
+                        aria-label={`Delete ${feed.title}`}
+                        className="border-rose-500/30 text-xs text-rose-700 hover:bg-rose-500/10 hover:text-rose-800 dark:border-rose-400/25 dark:text-rose-300 dark:hover:bg-rose-400/10 dark:hover:text-rose-200"
+                    >
+                        <Trash2 className="size-3.5"/>
+                        Delete
+                    </Button>
+                </div>
+            </div>
+        )
 
     return (
         <div className="space-y-4">
@@ -103,132 +254,36 @@ export function FeedsSettings({
                 onAdded={() => onFeedAdded?.()}
             />
 
-            {feeds === undefined ? null : feeds.length === 0 ? (
+            {feeds === undefined ? null : groups.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                     No feeds yet. Add one above or import an OPML file.
                 </p>
             ) : (
-                <div className="divide-y rounded-md border">
-                    {feeds.map((feed) =>
-                        editingId === feed.id ? (
-                            <div key={feed.id} className="space-y-2 p-3">
-                                <Input
-                                    value={draft.title}
-                                    onChange={(event) =>
-                                        setDraft((previous) => ({...previous, title: event.target.value}))
-                                    }
-                                    aria-label="Feed title"
-                                    className="h-8 text-xs"
-                                />
-                                <div className="flex flex-wrap items-center gap-2">
-                                    <select
-                                        aria-label="Feed folder"
-                                        className={selectClass}
-                                        value={draft.folderId}
-                                        onChange={(event) =>
-                                            setDraft((previous) => ({
-                                                ...previous,
-                                                folderId: event.target.value
-                                            }))
-                                        }
-                                    >
-                                        <option value="">No folder</option>
-                                        {(folders ?? []).map((folder) => (
-                                            <option key={folder.id} value={folder.id}>
-                                                {folder.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <select
-                                        aria-label="Feed refresh interval"
-                                        className={selectClass}
-                                        value={draft.refreshInterval}
-                                        onChange={(event) =>
-                                            setDraft((previous) => ({
-                                                ...previous,
-                                                refreshInterval: event.target.value
-                                            }))
-                                        }
-                                    >
-                                        <option value="">Global interval</option>
-                                        {INTERVAL_OPTIONS.map((option) => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <Input
-                                        type="number"
-                                        min={1}
-                                        step={1}
-                                        value={draft.retentionPerFeed}
-                                        onChange={(event) =>
-                                            setDraft((previous) => ({
-                                                ...previous,
-                                                retentionPerFeed: event.target.value
-                                            }))
-                                        }
-                                        placeholder={ settings ? `Limit: ${settings.retentionPerFeed}` : 'Global' }
-                                        title="Posts to keep. Leave empty to use the global limit."
-                                        aria-label="Feed post limit"
-                                        className="h-8 w-24 text-xs"
-                                    />
-                                </div>
-                                <MatchWordsInput
-                                    ref={matchWordsRef}
-                                    value={draft.matchWords}
-                                    onChange={(matchWords) =>
-                                        setDraft((previous) => ({...previous, matchWords}))
-                                    }
-                                />
-                                <div className="flex items-center gap-2">
-                                    <Button size="sm" onClick={() => void save()}>
-                                        Save
-                                    </Button>
-                                    <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>
-                                        Cancel
-                                    </Button>
-                                </div>
+                <div className="space-y-3">
+                    {groups.map((group) => (
+                        <section
+                            key={group.id === null ? 'root' : `folder:${group.id}`}
+                            className="overflow-hidden rounded-md border"
+                        >
+                            <div
+                                data-slot="feed-folder-header"
+                                className="flex items-center gap-2 border-b bg-muted/40 px-3 py-2"
+                            >
+                                {group.id === null ? (
+                                    <Inbox className="size-3.5 shrink-0 text-muted-foreground"/>
+                                ) : (
+                                    <Folder className="size-3.5 shrink-0 text-muted-foreground"/>
+                                )}
+                                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    {group.name}
+                                </span>
+                                <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                                    {group.feeds.length}
+                                </span>
                             </div>
-                        ) : (
-                            <div key={feed.id} className="flex items-start gap-3 p-3">
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-xs font-medium">{feed.title}</p>
-                                    <p className="truncate text-[11px] text-muted-foreground">{feed.url}</p>
-                                    <p className="mt-1 text-[11px] text-muted-foreground">
-                                        {folderName(feed.folderId)} ·{' '}
-                                        {feed.lastFetchedAt
-                                            ? `Fetched ${formatRelativeTime(new Date(feed.lastFetchedAt))}`
-                                            : 'Never fetched'}
-                                        {feed.retentionPerFeed ? ` · ${feed.retentionPerFeed} posts` : ''}
-                                    </p>
-                                    {feed.lastError ? (
-                                        <p className="mt-1 truncate text-[11px] text-destructive">
-                                            {feed.lastError}
-                                        </p>
-                                    ) : null}
-                                </div>
-                                <div className="flex shrink-0 items-center gap-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => beginEdit(feed)}
-                                        aria-label={`Edit ${feed.title}`}
-                                    >
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => void remove(feed)}
-                                        aria-label={`Delete ${feed.title}`}
-                                    >
-                                        Delete
-                                    </Button>
-                                </div>
-                            </div>
-                        )
-                    )}
+                            <div className="divide-y">{group.feeds.map(renderFeed)}</div>
+                        </section>
+                    ))}
                 </div>
             )}
         </div>

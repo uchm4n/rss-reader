@@ -16,7 +16,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 ### Settings
 
 - **General:** theme (system/light/dark), refresh interval (30 seconds to 1 hour; 15 minutes default), default posts per feed (50), notifications, mark read on open, start view (All/Unread/Starred), and remember app state (last view, collapsed folders and open post; on by default).
-- **Feeds:** add, edit and delete feeds; see URL, folder, last fetch and last error; set per-feed refresh interval, post limit and watch words as tags
+- **Feeds:** add, edit and delete feeds, grouped by folder; see URL, last fetch and last error; set per-feed refresh interval, post limit and watch words as tags
 - **Folders:** add, rename, reorder and delete folders
 - **OPML:** import a file or export subscriptions
 - **Storage:** read-only store table and record counts, browser storage estimate, and Clear all data

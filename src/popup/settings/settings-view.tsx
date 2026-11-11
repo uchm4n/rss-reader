@@ -39,8 +39,8 @@ export function SettingsView({
 
             <div className="flex min-h-0 flex-1">
                 <SettingsNav section={section} onSelect={setSection}/>
-                <ScrollArea className="min-h-0 min-w-0 flex-1">
-                    <div className="p-4">
+                <ScrollArea className="min-h-0 min-w-0 flex-1 **:data-[slot=scroll-area-viewport]:overflow-x-hidden [&_[data-slot=scroll-area-viewport]>div]:block! [&_[data-slot=scroll-area-viewport]>div]:w-full!">
+                    <div className="min-w-0 p-4">
                         {section === 'general' ? <GeneralSettings/> : null}
                         {section === 'feeds' ? (
                             <FeedsSettings initialUrl={initialUrl} onFeedAdded={onFeedAdded}/>

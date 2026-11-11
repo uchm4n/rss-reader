@@ -590,6 +590,43 @@ async function main() {
         (await evaluate(`Boolean(document.querySelector('input[aria-label="Feed URL"]'))`)),
       'add-feed toolbar button did not open Settings > Feeds'
     )
+    const folderHeaders = await evaluate(
+      `[...document.querySelectorAll('[data-slot="feed-folder-header"]')].map((element) => element.textContent?.trim() ?? '')`
+    )
+    assert(
+      folderHeaders.some((text) => text.includes('Tech / Nested')),
+      'feed folder groups did not render in Settings > Feeds'
+    )
+
+    const longFeedUrl = `${fixture.url}/rss.xml?long=${'x'.repeat(160)}`
+    await command({type: 'feed:add', url: longFeedUrl})
+    await waitFor(
+      async () => (await bodyText()).includes('rss.xml?long='),
+      'long-URL feed row did not render'
+    )
+    const horizontalOverflow = await evaluate(`(() => {
+      const viewport = document.querySelector('[data-slot="scroll-area-viewport"]')
+      return viewport ? viewport.scrollWidth - viewport.clientWidth : -1
+    })()`)
+    assert(
+      horizontalOverflow <= 0,
+      `long feed URL caused ${horizontalOverflow}px of horizontal overflow`
+    )
+    const actionsVisible = await evaluate(
+      `[...document.querySelectorAll('button[aria-label^="Delete "]')].every((button) => {
+        const rect = button.getBoundingClientRect()
+        return rect.left >= 0 && rect.right <= window.innerWidth
+      })`
+    )
+    assert(actionsVisible, 'feed action buttons were pushed out of view')
+    const longFeed = (await dbAll('feeds')).find((feed) => feed.url === longFeedUrl)
+    assert(longFeed, 'long-URL feed was not stored')
+    await command({type: 'feed:delete', id: longFeed.id})
+    await waitFor(
+      async () => !(await dbAll('feeds')).some((feed) => feed.id === longFeed.id),
+      'long-URL feed was not deleted'
+    )
+    console.log('   folder groups rendered and long URLs stayed inside the viewport')
     const detectedUrl = await evaluate(
       `document.querySelector('input[aria-label="Feed URL"]')?.value ?? ''`
     )
