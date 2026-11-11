@@ -12,6 +12,11 @@ describe('settings repository', () => {
     await expect(getSettings()).resolves.toEqual(DEFAULT_SETTINGS)
   })
 
+  it('defaults retention to 50 posts per feed', async () => {
+    const settings = await getSettings()
+    expect(settings.retentionPerFeed).toBe(50)
+  })
+
   it('updates one key without touching the others', async () => {
     await setSetting('theme', 'dark')
 

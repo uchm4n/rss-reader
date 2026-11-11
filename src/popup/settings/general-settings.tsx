@@ -1,10 +1,9 @@
 import type {ReactNode} from 'react'
 import {Input} from '@/components/ui/input'
-import {db} from '@/db/db'
 import {setSetting} from '@/db/settings'
 import type {AppSettings} from '@/db/types'
 import {clearUiState} from '@/db/ui-state'
-import {trimFeedPosts} from '@/db/posts'
+import {trimAllFeeds} from '@/db/posts'
 import {syncActionBadge} from '@/background/badge'
 import {useSettings} from '../hooks/use-settings'
 import {sendCommand} from '../lib/commands'
@@ -68,10 +67,7 @@ export function GeneralSettings() {
         if (retention === settings.retentionPerFeed) return
 
         await setSetting('retentionPerFeed', retention)
-        const feeds = await db.feeds.toArray()
-        for (const feed of feeds) {
-            await trimFeedPosts(feed.id, retention)
-        }
+        await trimAllFeeds(retention)
         await syncActionBadge()
     }
 
@@ -117,15 +113,15 @@ export function GeneralSettings() {
                     </select>
                 </Field>
                 <Field
-                    label="Posts per feed"
-                    description="Older posts are removed when a feed grows past this limit."
+                    label="Default posts per feed"
+                    description="Used by feeds without their own limit. Older posts are removed when a feed grows past its limit."
                 >
                     <Input
                         key={settings.retentionPerFeed}
                         type="number"
                         min={1}
                         defaultValue={settings.retentionPerFeed}
-                        aria-label="Posts per feed"
+                        aria-label="Default posts per feed"
                         className="h-8 w-20 text-xs"
                         onBlur={(event) => void commitRetention(event.target.value)}
                     />

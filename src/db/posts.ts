@@ -110,3 +110,10 @@ export async function trimFeedPosts(
         return {trimmed: remove.length, unread}
     })
 }
+
+export async function trimAllFeeds(globalRetention: number): Promise<void> {
+    const feeds = await db.feeds.toArray()
+    for (const feed of feeds) {
+        await trimFeedPosts(feed.id, feed.retentionPerFeed ?? globalRetention)
+    }
+}

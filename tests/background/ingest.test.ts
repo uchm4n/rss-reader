@@ -17,7 +17,7 @@ describe('ingestFeed', () => {
     ])
 
     const result = await ingestFeed(feed, parsed, {
-      retention: 200,
+      retention: 50,
       firstFetch: true,
       now: 1_000
     })
@@ -39,7 +39,7 @@ describe('ingestFeed', () => {
       parsedPost({guid: 'g1', contentType: 'markdown', contentHtml: '# Hello'})
     ])
 
-    await ingestFeed(feed, parsed, {retention: 200, firstFetch: true, now: 1_000})
+    await ingestFeed(feed, parsed, {retention: 50, firstFetch: true, now: 1_000})
 
     expect((await db.posts.get('feed-1:g1'))?.contentType).toBe('markdown')
   })
@@ -51,7 +51,7 @@ describe('ingestFeed', () => {
       parsedPost({guid: 'g2', title: 'Two', publishedAt: 200})
     ])
 
-    await ingestFeed(feed, parsed, {retention: 200, firstFetch: true, now: 1_000})
+    await ingestFeed(feed, parsed, {retention: 50, firstFetch: true, now: 1_000})
     await db.posts.update('feed-1:g1', {
       status: false,
       statusKey: 0,
@@ -68,7 +68,7 @@ describe('ingestFeed', () => {
         parsedPost({guid: 'g1', title: 'One updated', publishedAt: 100}),
         parsedPost({guid: 'g2', title: 'Two', publishedAt: 200})
       ]),
-      {retention: 200, firstFetch: false, now: 2_000}
+      {retention: 50, firstFetch: false, now: 2_000}
     )
 
     expect(result).toEqual({inserted: 0, trimmed: 0, unread: 1})
@@ -93,7 +93,7 @@ describe('ingestFeed', () => {
       parsedPost({guid: null, link: 'https://example.com/same', publishedAt: 100})
     ])
 
-    await ingestFeed(feed, parsed, {retention: 200, firstFetch: true, now: 1_000})
+    await ingestFeed(feed, parsed, {retention: 50, firstFetch: true, now: 1_000})
     const result = await ingestFeed(
       feed,
       parsedFeed([
@@ -104,14 +104,14 @@ describe('ingestFeed', () => {
           publishedAt: 100
         })
       ]),
-      {retention: 200, firstFetch: false, now: 2_000}
+      {retention: 50, firstFetch: false, now: 2_000}
     )
 
     expect(result.inserted).toBe(0)
     expect(await db.posts.count()).toBe(1)
   })
 
-  it('keeps only the newest 200 posts on a large first fetch', async () => {
+  it('keeps only the newest 50 posts on a large first fetch', async () => {
     const feed = await seedFeed()
     const items = Array.from({length: 201}, (_, index) =>
       parsedPost({
@@ -122,16 +122,16 @@ describe('ingestFeed', () => {
     )
 
     const result = await ingestFeed(feed, parsedFeed(items), {
-      retention: 200,
+      retention: 50,
       firstFetch: true,
       now: 1_000
     })
 
-    expect(result).toEqual({inserted: 201, trimmed: 1, unread: 0})
+    expect(result).toEqual({inserted: 201, trimmed: 151, unread: 0})
 
     const posts = await db.posts.orderBy('publishedAt').toArray()
-    expect(posts).toHaveLength(200)
-    expect(posts[0].publishedAt).toBe(2)
+    expect(posts).toHaveLength(50)
+    expect(posts[0].publishedAt).toBe(152)
     expect(posts.at(-1)?.publishedAt).toBe(201)
     expect(posts.every((post) => post.status)).toBe(true)
   })
@@ -144,7 +144,7 @@ describe('ingestFeed', () => {
     ])
 
     await ingestFeed(feed, parsed, {
-      retention: 200,
+      retention: 50,
       firstFetch: true,
       now: 1_000
     })
@@ -158,14 +158,14 @@ describe('ingestFeed', () => {
     await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: 'g1', title: 'WordPress news', publishedAt: 100, link: 'https://example.com/1'})]),
-      {retention: 200, firstFetch: true, now: 1_000}
+      {retention: 50, firstFetch: true, now: 1_000}
     )
     expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress'])
 
     await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: 'g2', title: 'AI update', publishedAt: 200, link: 'https://example.com/2'})]),
-      {retention: 200, firstFetch: false, now: 2_000}
+      {retention: 50, firstFetch: false, now: 2_000}
     )
     expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress', 'AI'])
   })
@@ -179,7 +179,7 @@ describe('ingestFeed', () => {
         parsedPost({guid: 'match', title: 'WordPress news', publishedAt: 100, link: 'https://example.com/match'}),
         parsedPost({guid: 'other', title: 'Other', publishedAt: 200, link: 'https://example.com/other'})
       ]),
-      {retention: 200, firstFetch: true, now: 1_000}
+      {retention: 50, firstFetch: true, now: 1_000}
     )
     expect((await db.feeds.get('feed-1'))?.matchedWords).toEqual(['WordPress'])
 
@@ -200,7 +200,7 @@ describe('ingestFeed', () => {
         parsedPost({guid: 'g1', publishedAt: 100}),
         parsedPost({guid: 'g2', publishedAt: 200})
       ]),
-      {retention: 200, firstFetch: true, now: 1_000}
+      {retention: 50, firstFetch: true, now: 1_000}
     )
 
     const result = await ingestFeed(
@@ -210,7 +210,7 @@ describe('ingestFeed', () => {
         parsedPost({guid: 'g2', publishedAt: 200}),
         parsedPost({guid: 'g3', title: 'New', publishedAt: 300})
       ]),
-      {retention: 200, firstFetch: false, now: 2_000}
+      {retention: 50, firstFetch: false, now: 2_000}
     )
 
     expect(result).toEqual({inserted: 1, trimmed: 0, unread: 1})
@@ -227,7 +227,7 @@ describe('ingestFeed', () => {
     await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: 'g1', link: 'https://example.com/same', publishedAt: 100})]),
-      {retention: 200, firstFetch: true, now: 1_000}
+      {retention: 50, firstFetch: true, now: 1_000}
     )
     await db.posts.update('feed-1:g1', {
       status: false,
@@ -241,7 +241,7 @@ describe('ingestFeed', () => {
     const result = await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: 'g2', link: 'https://example.com/same', publishedAt: 100})]),
-      {retention: 200, firstFetch: false, now: 2_000}
+      {retention: 50, firstFetch: false, now: 2_000}
     )
 
     expect(result.inserted).toBe(0)
@@ -260,13 +260,13 @@ describe('ingestFeed', () => {
     await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: null, link: 'https://example.com/same', publishedAt: 100})]),
-      {retention: 200, firstFetch: true, now: 1_000}
+      {retention: 50, firstFetch: true, now: 1_000}
     )
 
     const result = await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: 'g1', link: 'https://example.com/same', publishedAt: 100})]),
-      {retention: 200, firstFetch: false, now: 2_000}
+      {retention: 50, firstFetch: false, now: 2_000}
     )
 
     expect(result.inserted).toBe(0)
@@ -280,11 +280,11 @@ describe('ingestFeed', () => {
       parsedPost({guid: null, link: null, title: 'Undated', publishedAt: 0})
     ])
 
-    await ingestFeed(feed, parsed, {retention: 200, firstFetch: true, now: 1_000})
+    await ingestFeed(feed, parsed, {retention: 50, firstFetch: true, now: 1_000})
     const first = await db.posts.toArray()
     expect(first[0]).toMatchObject({publishedAt: 1_000, fetchedAt: 1_000})
 
-    await ingestFeed(feed, parsed, {retention: 200, firstFetch: false, now: 2_000})
+    await ingestFeed(feed, parsed, {retention: 50, firstFetch: false, now: 2_000})
     const second = await db.posts.toArray()
     expect(second).toHaveLength(1)
     expect(second[0]).toMatchObject({publishedAt: 1_000, fetchedAt: 1_000})
@@ -296,7 +296,7 @@ describe('ingestFeed', () => {
     const result = await ingestFeed(
       feed,
       parsedFeed([parsedPost({guid: 'g1'})]),
-      {retention: 200, firstFetch: false, now: 1_000}
+      {retention: 50, firstFetch: false, now: 1_000}
     )
 
     expect(result).toEqual({inserted: 0, trimmed: 0, unread: 0})
@@ -305,11 +305,11 @@ describe('ingestFeed', () => {
 
   it('trims old unread posts and adjusts the unread count', async () => {
     const feed = await seedFeed()
-    const readPosts = Array.from({length: 200}, (_, index) =>
+    const readPosts = Array.from({length: 50}, (_, index) =>
       parsedPost({guid: `read-${index}`, publishedAt: index + 1})
     )
     await ingestFeed(feed, parsedFeed(readPosts), {
-      retention: 200,
+      retention: 50,
       firstFetch: true,
       now: 1_000
     })
@@ -318,13 +318,13 @@ describe('ingestFeed', () => {
       parsedPost({guid: `new-${index}`, publishedAt: 1_000 + index})
     )
     const result = await ingestFeed(feed, parsedFeed(unreadPosts), {
-      retention: 200,
+      retention: 50,
       firstFetch: false,
       now: 2_000
     })
 
     expect(result).toEqual({inserted: 5, trimmed: 5, unread: 5})
-    expect(await db.posts.count()).toBe(200)
+    expect(await db.posts.count()).toBe(50)
     expect((await db.feeds.get('feed-1'))?.unreadCount).toBe(5)
     expect(await db.posts.where('statusKey').equals(0).count()).toBe(5)
   })

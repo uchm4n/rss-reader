@@ -35,13 +35,13 @@ async function loadFeed(path: string) {
 }
 
 describe('local reader end-to-end data flow', () => {
-  it('imports a first fetch as read and keeps the newest 200', async () => {
+  it('imports a first fetch as read and keeps the newest 50', async () => {
     const feed = feedFixture({url: `${fixture.url}/rss.xml`})
     await db.feeds.add(feed)
     const {parsed} = await loadFeed('/rss.xml')
 
     const result = await ingestFeed(feed, parsed, {
-      retention: 200,
+      retention: 50,
       firstFetch: true,
       now: 1_000
     })
@@ -58,15 +58,15 @@ describe('local reader end-to-end data flow', () => {
     await db.feeds.add(retentionFeed)
     const retention = await loadFeed('/retention.xml')
     const retained = await ingestFeed(retentionFeed, retention.parsed, {
-      retention: 200,
+      retention: 50,
       firstFetch: true,
       now: 2_000
     })
 
-    expect(retained).toEqual({inserted: 201, trimmed: 1, unread: 0})
+    expect(retained).toEqual({inserted: 201, trimmed: 151, unread: 0})
     expect(
       await db.posts.where('feedId').equals('retention-feed').count()
-    ).toBe(200)
+    ).toBe(50)
     expect(
       await db.posts.where('feedId').equals('retention-feed').and((post) => !post.status).count()
     ).toBe(0)
@@ -77,12 +77,12 @@ describe('local reader end-to-end data flow', () => {
     await db.feeds.add(feed)
 
     const first = await loadFeed('/rss.xml')
-    await ingestFeed(feed, first.parsed, {retention: 200, firstFetch: true, now: 1_000})
+    await ingestFeed(feed, first.parsed, {retention: 50, firstFetch: true, now: 1_000})
 
     await fetch(`${fixture.url}/add-item`)
     const second = await loadFeed('/rss.xml')
     const result = await ingestFeed(feed, second.parsed, {
-      retention: 200,
+      retention: 50,
       firstFetch: false,
       now: 2_000
     })
@@ -112,7 +112,7 @@ describe('local reader end-to-end data flow', () => {
     const feed = feedFixture({url: `${fixture.url}/atom.xml`})
     await db.feeds.add(feed)
     const {parsed} = await loadFeed('/atom.xml')
-    await ingestFeed(feed, parsed, {retention: 200, firstFetch: true, now: 1_000})
+    await ingestFeed(feed, parsed, {retention: 50, firstFetch: true, now: 1_000})
 
     const cached = await db.posts.orderBy('publishedAt').reverse().toArray()
     expect(cached.map((post) => post.title)).toEqual(['Atom Two', 'Atom One'])

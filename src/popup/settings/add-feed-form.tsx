@@ -18,22 +18,32 @@ export const INTERVAL_OPTIONS = [
 const selectClass =
     'h-8 rounded-md border border-input bg-background px-2 text-xs text-foreground'
 
+export function parseFeedLimit(raw: string): number | null {
+    if (!raw.trim()) return null
+    const value = Number(raw)
+    if (!Number.isFinite(value)) return null
+    return Math.max(1, Math.trunc(value))
+}
+
 export function AddFeedForm({
                                 folders,
                                 onAdded,
                                 initialUrl = '',
+                                globalRetention,
                                 sourceTabId,
                                 onCancel
                             }: {
     folders: Folder[]
     onAdded: () => void
     initialUrl?: string
+    globalRetention?: number
     sourceTabId?: number
     onCancel?: () => void
 }) {
     const [url, setUrl] = useState(initialUrl)
     const [folderId, setFolderId] = useState('')
     const [refreshInterval, setRefreshInterval] = useState('')
+    const [retentionPerFeed, setRetentionPerFeed] = useState('')
     const [matchWords, setMatchWords] = useState<string[]>([])
     const matchWordsRef = useRef<MatchWordsInputHandle>(null)
     const [busy, setBusy] = useState(false)
@@ -52,10 +62,12 @@ export function AddFeedForm({
                 url,
                 folderId: folderId || null,
                 refreshInterval: refreshInterval ? Number(refreshInterval) : null,
+                retentionPerFeed: parseFeedLimit(retentionPerFeed),
                 matchWords: words,
                 sourceTabId
             })
             setUrl('')
+            setRetentionPerFeed('')
             setMatchWords([])
             onAdded()
             toast.success('Feed added')
@@ -88,7 +100,7 @@ export function AddFeedForm({
                     </Button>
                 ) : null}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <select
                     aria-label="Feed folder"
                     className={selectClass}
@@ -115,6 +127,17 @@ export function AddFeedForm({
                         </option>
                     ))}
                 </select>
+                <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={retentionPerFeed}
+                    onChange={(event) => setRetentionPerFeed(event.target.value)}
+                    placeholder={globalRetention ? `Limit: ${globalRetention}` : 'Global'}
+                    title="Posts to keep. Leave empty to use the global limit."
+                    aria-label="New feed post limit"
+                    className="h-8 w-24 text-xs"
+                />
             </div>
             <MatchWordsInput ref={matchWordsRef} value={matchWords} onChange={setMatchWords}/>
             <p className="text-[11px] text-muted-foreground">

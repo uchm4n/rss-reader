@@ -6,8 +6,9 @@ import type {Feed} from '@/db/types'
 import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../hooks/use-feeds'
 import {useFolders} from '../hooks/use-folders'
+import {useSettings} from '../hooks/use-settings'
 import {sendCommand} from '../lib/commands'
-import {AddFeedForm, INTERVAL_OPTIONS} from './add-feed-form'
+import {AddFeedForm, INTERVAL_OPTIONS, parseFeedLimit} from './add-feed-form'
 import {MatchWordsInput, type MatchWordsInputHandle} from './match-words-input'
 
 const selectClass =
@@ -17,6 +18,7 @@ interface FeedDraft {
     title: string
     folderId: string
     refreshInterval: string
+    retentionPerFeed: string
     matchWords: string[]
 }
 
@@ -33,12 +35,14 @@ export function FeedsSettings({
 } = {}) {
     const feeds = useFeeds()
     const folders = useFolders()
+    const settings = useSettings()
     const [editingId, setEditingId] = useState<string | null>(null)
     const matchWordsRef = useRef<MatchWordsInputHandle>(null)
     const [draft, setDraft] = useState<FeedDraft>({
         title: '',
         folderId: '',
         refreshInterval: '',
+        retentionPerFeed: '',
         matchWords: []
     })
 
@@ -48,6 +52,7 @@ export function FeedsSettings({
             title: feed.title,
             folderId: feed.folderId ?? '',
             refreshInterval: feed.refreshInterval ? String(feed.refreshInterval) : '',
+            retentionPerFeed: feed.retentionPerFeed ? String(feed.retentionPerFeed) : '',
             matchWords: feed.matchWords ?? []
         })
     }
@@ -64,6 +69,7 @@ export function FeedsSettings({
                     title: draft.title,
                     folderId: draft.folderId || null,
                     refreshInterval: draft.refreshInterval ? Number(draft.refreshInterval) : null,
+                    retentionPerFeed: parseFeedLimit(draft.retentionPerFeed),
                     matchWords
                 }
             })
@@ -93,6 +99,7 @@ export function FeedsSettings({
             <AddFeedForm
                 folders={folders ?? []}
                 initialUrl={initialUrl}
+                globalRetention={settings?.retentionPerFeed}
                 onAdded={() => onFeedAdded?.()}
             />
 
@@ -113,7 +120,7 @@ export function FeedsSettings({
                                     aria-label="Feed title"
                                     className="h-8 text-xs"
                                 />
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <select
                                         aria-label="Feed folder"
                                         className={selectClass}
@@ -150,6 +157,22 @@ export function FeedsSettings({
                                             </option>
                                         ))}
                                     </select>
+                                    <Input
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        value={draft.retentionPerFeed}
+                                        onChange={(event) =>
+                                            setDraft((previous) => ({
+                                                ...previous,
+                                                retentionPerFeed: event.target.value
+                                            }))
+                                        }
+                                        placeholder={ settings ? `Limit: ${settings.retentionPerFeed}` : 'Global' }
+                                        title="Posts to keep. Leave empty to use the global limit."
+                                        aria-label="Feed post limit"
+                                        className="h-8 w-24 text-xs"
+                                    />
                                 </div>
                                 <MatchWordsInput
                                     ref={matchWordsRef}
@@ -177,6 +200,7 @@ export function FeedsSettings({
                                         {feed.lastFetchedAt
                                             ? `Fetched ${formatRelativeTime(new Date(feed.lastFetchedAt))}`
                                             : 'Never fetched'}
+                                        {feed.retentionPerFeed ? ` · ${feed.retentionPerFeed} posts` : ''}
                                     </p>
                                     {feed.lastError ? (
                                         <p className="mt-1 truncate text-[11px] text-destructive">

@@ -541,9 +541,9 @@ async function main() {
       const retention = feeds.find((feed) => feed.url.endsWith('/retention.xml'))
       if (!retention) return false
       const posts = (await dbAll('posts')).filter((post) => post.feedId === retention.id)
-      return posts.length === 200 && posts.every((post) => post.status)
-    }, 'retention did not keep 200 read posts')
-    console.log('   retention kept the newest 200 posts')
+      return posts.length === 50 && posts.every((post) => post.status)
+    }, 'retention did not keep 50 read posts')
+    console.log('   retention kept the newest 50 posts')
 
     console.log('6. detect feeds from page markup and probing')
     const article = await discoverPage('/article.html', '/article.rss')
@@ -620,6 +620,14 @@ async function main() {
       return true
     })()`)
     await evaluate(`(() => {
+      const input = document.querySelector('input[aria-label="New feed post limit"]')
+      if (!input) return false
+      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set
+      setter.call(input, '10')
+      input.dispatchEvent(new Event('input', {bubbles: true}))
+      return true
+    })()`)
+    await evaluate(`(() => {
       const button = [...document.querySelectorAll('button')].find((candidate) =>
         candidate.textContent?.trim() === 'Add feed'
       )
@@ -631,6 +639,13 @@ async function main() {
         (await bodyText()).includes('reddit-like/news.rss'),
       'adding the detected feed did not refresh the feed list'
     )
+    await waitFor(async () => {
+      const feeds = await dbAll('feeds')
+      return feeds.some(
+        (feed) =>
+          feed.url.includes('/reddit-like/news.rss') && feed.retentionPerFeed === 10
+      )
+    }, 'per-feed post limit was not stored')
     await evaluate(`document.querySelector('button[aria-label="Back to reader"]')?.click()`)
     await waitFor(
       async () => !(await bodyText()).includes('Settings'),
@@ -676,7 +691,7 @@ async function main() {
       'post match tooltip did not appear after hovering the yellow dot',
       3_000
     )
-    console.log('   submitting the form added the feed and stayed in Settings')
+    console.log('   submitting the form added the feed, stayed in Settings and stored its post limit')
     console.log('   the watch word appeared as a feed indicator, post dot and hover tooltip')
 
     await popup.send('Page.reload', {ignoreCache: true})

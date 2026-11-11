@@ -2,6 +2,7 @@ import {afterEach, describe, expect, it} from 'vitest'
 import {
   countStarredPosts,
   markPostsRead,
+  trimAllFeeds,
   trimFeedPosts,
   setPostStatus,
   togglePostStar
@@ -165,5 +166,27 @@ describe('post actions', () => {
     expect(await db.posts.get('old')).toBeUndefined()
     expect(await db.posts.count()).toBe(2)
     expect((await db.feeds.get('feed-1'))?.unreadCount).toBe(1)
+  })
+
+  it('trims all feeds using each feed post limit', async () => {
+    await seedFeed({id: 'feed-1'})
+    await seedFeed({
+      id: 'feed-2',
+      url: 'https://example.com/two.xml',
+      retentionPerFeed: 3
+    })
+    await db.posts.bulkAdd([
+      postFixture({id: 'a1', feedId: 'feed-1', publishedAt: 100}),
+      postFixture({id: 'a2', feedId: 'feed-1', publishedAt: 200}),
+      postFixture({id: 'b1', feedId: 'feed-2', publishedAt: 100}),
+      postFixture({id: 'b2', feedId: 'feed-2', publishedAt: 200}),
+      postFixture({id: 'b3', feedId: 'feed-2', publishedAt: 300}),
+      postFixture({id: 'b4', feedId: 'feed-2', publishedAt: 400})
+    ])
+
+    await trimAllFeeds(1)
+
+    expect(await db.posts.where('feedId').equals('feed-1').count()).toBe(1)
+    expect(await db.posts.where('feedId').equals('feed-2').count()).toBe(3)
   })
 })

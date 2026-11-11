@@ -5,7 +5,16 @@ import {
   type Command
 } from '../../src/background/messages'
 import {db} from '../../src/db/db'
+import {setSetting} from '../../src/db/settings'
 import {postFixture, seedFeed} from '../helpers/db'
+
+function rssWithItems(count: number): string {
+  const items = Array.from({length: count}, (_, index) => {
+    const published = new Date(1_700_000_000_000 + index * 60_000).toUTCString()
+    return `<item><title>Post ${index + 1}</title><link>https://example.com/${index + 1}</link><guid>g${index + 1}</guid><pubDate>${published}</pubDate><description>body</description></item>`
+  }).join('')
+  return `<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><link>https://example.com/</link><description>d</description>${items}</channel></rss>`
+}
 
 beforeEach(() => {
   vi.stubGlobal('chrome', {
@@ -79,6 +88,24 @@ describe('handleCommand', () => {
     expect(feeds[0]).toMatchObject({fetchMode: 'background', url: 'https://example.com/feed.xml'})
   })
 
+  it('stores a per-feed post limit and applies it on the first fetch', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(rssWithItems(3), {status: 200}))
+    )
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://example.com/feed.xml',
+      retentionPerFeed: 2
+    })
+
+    expect(result.ok).toBe(true)
+    const feed = (await db.feeds.toArray())[0]
+    expect(feed.retentionPerFeed).toBe(2)
+    expect(await db.posts.count()).toBe(2)
+  })
+
   it('stores watch words and matches them on add', async () => {
     vi.stubGlobal(
       'fetch',
@@ -101,6 +128,20 @@ describe('handleCommand', () => {
       matchWords: ['WordPress', 'AI'],
       matchedWords: ['WordPress']
     })
+  })
+
+  it('uses the per-feed post limit over the global limit on refresh', async () => {
+    await setSetting('retentionPerFeed', 1)
+    await seedFeed({id: 'feed-1', retentionPerFeed: 3})
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response(rssWithItems(5), {status: 200}))
+    )
+
+    const result = await handleCommand({type: 'feed:refresh', id: 'feed-1'})
+
+    expect(result.ok).toBe(true)
+    expect(await db.posts.count()).toBe(3)
   })
 
   it('rescans retained posts when watch words change', async () => {
@@ -291,6 +332,59 @@ describe('handleCommand', () => {
       folderId: 'folder-1',
       refreshInterval: 300
     })
+  })
+
+  it('trims a feed immediately when its post limit is lowered', async () => {
+    await seedFeed({id: 'feed-1'})
+    await db.posts.bulkAdd([
+      postFixture({id: 'p1', feedId: 'feed-1', publishedAt: 100}),
+      postFixture({id: 'p2', feedId: 'feed-1', publishedAt: 200}),
+      postFixture({id: 'p3', feedId: 'feed-1', publishedAt: 300})
+    ])
+
+    const result = await handleCommand({
+      type: 'feed:update',
+      id: 'feed-1',
+      patch: {retentionPerFeed: 2}
+    })
+
+    expect(result).toEqual({ok: true})
+    expect((await db.feeds.get('feed-1'))?.retentionPerFeed).toBe(2)
+    expect(await db.posts.count()).toBe(2)
+    expect(await db.posts.get('p1')).toBeUndefined()
+  })
+
+  it('falls back to the global post limit when a feed override is cleared', async () => {
+    await setSetting('retentionPerFeed', 2)
+    await seedFeed({id: 'feed-1', retentionPerFeed: 4})
+    await db.posts.bulkAdd([
+      postFixture({id: 'p1', feedId: 'feed-1', publishedAt: 100}),
+      postFixture({id: 'p2', feedId: 'feed-1', publishedAt: 200}),
+      postFixture({id: 'p3', feedId: 'feed-1', publishedAt: 300}),
+      postFixture({id: 'p4', feedId: 'feed-1', publishedAt: 400})
+    ])
+
+    const result = await handleCommand({
+      type: 'feed:update',
+      id: 'feed-1',
+      patch: {retentionPerFeed: null}
+    })
+
+    expect(result).toEqual({ok: true})
+    expect((await db.feeds.get('feed-1'))?.retentionPerFeed).toBeNull()
+    expect(await db.posts.count()).toBe(2)
+  })
+
+  it('clamps a feed post limit to at least one', async () => {
+    await seedFeed({id: 'feed-1'})
+
+    await handleCommand({
+      type: 'feed:update',
+      id: 'feed-1',
+      patch: {retentionPerFeed: 0}
+    })
+
+    expect((await db.feeds.get('feed-1'))?.retentionPerFeed).toBe(1)
   })
 
   it('adds and renames folders in sort order', async () => {

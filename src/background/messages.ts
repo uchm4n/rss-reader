@@ -1,4 +1,5 @@
 import {db} from '../db/db'
+import {trimFeedPosts} from '../db/posts'
 import {getSettings} from '../db/settings'
 import type {Feed} from '../db/types'
 import {canonicalFeedUrl} from '../shared/model/feed-url'
@@ -20,6 +21,7 @@ export type Command =
     url: string
     folderId?: string | null
     refreshInterval?: number | null
+    retentionPerFeed?: number | null
     matchWords?: string[]
     sourceTabId?: number
 }
@@ -30,6 +32,7 @@ export type Command =
         title?: string
         folderId?: string | null
         refreshInterval?: number | null
+        retentionPerFeed?: number | null
         matchWords?: string[]
     }
 }
@@ -74,6 +77,12 @@ export function normalizeFeedUrl(raw: string): string {
 
 function errorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error)
+}
+
+function normalizeRetentionLimit(value: number | null | undefined): number | null {
+    if (value === null || value === undefined) return null
+    if (!Number.isFinite(value)) throw new Error('Post limit must be a number')
+    return Math.max(1, Math.trunc(value))
 }
 
 function matchesFeedUrl(feed: Feed, url: string): boolean {
@@ -224,7 +233,7 @@ export async function refreshFeed(
 
     const firstFetch = feed.lastFetchedAt === null
     const result = await ingestFeed(feed, parsed, {
-        retention: settings.retentionPerFeed,
+        retention: feed.retentionPerFeed ?? settings.retentionPerFeed,
         firstFetch,
         now
     })
@@ -287,6 +296,7 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
     }
 
     const settings = await getSettings()
+    const retentionPerFeed = normalizeRetentionLimit(command.retentionPerFeed)
     const fetched = await fetchFeedDocument(
         url,
         'background',
@@ -323,6 +333,7 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
         faviconCachedAt: favicon.faviconCachedAt,
         folderId: command.folderId ?? null,
         refreshInterval: command.refreshInterval ?? null,
+        retentionPerFeed,
         lastFetchedAt: now,
         nextFetchAt: 0,
         etag: fetched.etag,
@@ -340,7 +351,7 @@ async function addFeed(command: Extract<Command, { type: 'feed:add' }>): Promise
 
     await db.feeds.add(feed)
     const result = await ingestFeed(feed, parsed, {
-        retention: settings.retentionPerFeed,
+        retention: retentionPerFeed ?? settings.retentionPerFeed,
         firstFetch: true,
         now
     })
@@ -399,6 +410,7 @@ async function importOpml(xml: string): Promise<CommandResult> {
             favicon: null,
             folderId,
             refreshInterval: null,
+            retentionPerFeed: null,
             lastFetchedAt: null,
             nextFetchAt: now + 1_000 + createdFeeds * OPML_STAGGER_MS,
             etag: null,
@@ -436,6 +448,7 @@ export async function handleCommand(command: Command): Promise<CommandResult> {
                 const now = Date.now()
                 const updates: Partial<Feed> = {updatedAt: now}
                 let intervalChanged = false
+                let retentionChanged = false
 
                 if (command.patch.title !== undefined) {
                     const title = command.patch.title.trim()
@@ -449,20 +462,33 @@ export async function handleCommand(command: Command): Promise<CommandResult> {
                     updates.refreshInterval = command.patch.refreshInterval
                     intervalChanged = true
                 }
+                if (command.patch.retentionPerFeed !== undefined) {
+                    updates.retentionPerFeed = normalizeRetentionLimit(
+                        command.patch.retentionPerFeed
+                    )
+                    retentionChanged = true
+                }
                 if (command.patch.matchWords !== undefined) {
                     updates.matchWords = sanitizeMatchWords(command.patch.matchWords)
                     const posts = await db.posts.where('feedId').equals(feed.id).toArray()
                     updates.matchedWords = safeFindMatchedWords(updates.matchWords, posts)
                 }
 
-                if (intervalChanged) {
-                    const settings = await getSettings()
+                const settings = intervalChanged || retentionChanged ? await getSettings() : null
+                if (intervalChanged && settings) {
                     updates.nextFetchAt =
                         now +
                         effectiveInterval(feed, settings.refreshInterval) * 1_000
                 }
 
                 await db.feeds.update(feed.id, updates)
+                if (retentionChanged && settings) {
+                    await trimFeedPosts(
+                        feed.id,
+                        updates.retentionPerFeed ?? settings.retentionPerFeed
+                    )
+                    await syncActionBadge()
+                }
                 return {ok: true}
             }
 

@@ -63,7 +63,7 @@ Those third-party sites receive standard request information (such as IP address
 
 ## Data retention and deletion
 
-- Posts are retained per feed according to your retention setting (default 200).
+- Posts are retained per feed according to your retention settings (default 50, with optional per-feed overrides).
 - Deleting a feed deletes its posts.
 - “Clear all data” in Settings removes feeds, folders, posts, settings, and saved app state from IndexedDB.
 - Uninstalling the extension removes its local storage.

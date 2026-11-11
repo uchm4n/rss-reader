@@ -4,7 +4,7 @@ import type {AppSettings} from './types'
 export const DEFAULT_SETTINGS: AppSettings = {
     theme: 'system',
     refreshInterval: 900,
-    retentionPerFeed: 200,
+    retentionPerFeed: 50,
     notifications: false,
     markReadOnOpen: true,
     startView: 'all',

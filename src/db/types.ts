@@ -12,6 +12,7 @@ export interface Feed {
     faviconCachedAt?: number | null
     folderId: string | null
     refreshInterval: number | null
+    retentionPerFeed?: number | null
     lastFetchedAt: number | null
     nextFetchAt: number
     etag: string | null
