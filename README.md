@@ -3,6 +3,8 @@
 A local-first browser extension for RSS, Atom, RDF and JSON feeds. 
 No account, hosted API's, analytics or remote push, everything lives inside the browser, offline.
 
+[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/ojlofmfdkblgdkjjhhpojmdnechhjcjo)
+
 ![screenshot.png](screenshot.png)
 
 ### Technology
@@ -56,7 +58,7 @@ Run `npm run build:chrome` before `npm run test:e2e`; the E2E test uses the buil
 
 ## Loading the extension
 
-Requires Chrome 110 or newer.
+Requires Chrome 110 or newer. Install the published build from the [Chrome Web Store](https://chromewebstore.google.com/detail/ojlofmfdkblgdkjjhhpojmdnechhjcjo), or load it unpacked:
 
 1. `npm run build:chrome`
 2. Open `chrome://extensions`.
