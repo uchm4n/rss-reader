@@ -176,7 +176,7 @@ export async function startFixtureServer(port = 0) {
     publishedAt: Date.parse('2026-01-01T00:00:00Z') + index * 60_000
   }))
   const articleItems = discoveryItems('article')
-  const probeItems = discoveryItems('probe')
+  const secondaryItems = discoveryItems('secondary')
   const redditItems = discoveryItems('reddit')
   const cookieItems = discoveryItems('cookie')
   let articleAdded = 0
@@ -229,7 +229,7 @@ export async function startFixtureServer(port = 0) {
           `<!doctype html><html><head>
             <title>Multiple feeds</title>
             <link rel="alternate" type="application/rss+xml" title="Article feed" href="/article.rss">
-            <link rel="alternate" type="application/atom+xml" title="Probe feed" href="/probe.rss">
+            <link rel="alternate" type="application/atom+xml" title="Secondary feed" href="/secondary.rss">
           </head><body><h1>Multiple</h1></body></html>`
         )
         return
@@ -246,25 +246,8 @@ export async function startFixtureServer(port = 0) {
         send(response, 200, 'application/json', JSON.stringify({added: articleAdded}))
         return
       }
-      case '/probe':
-        send(
-          response,
-          200,
-          'text/html',
-          '<!doctype html><html><head><title>Probe page</title></head><body>No link</body></html>'
-        )
-        return
-      case '/probe.rss':
-        send(response, 200, 'application/rss+xml', rssDocument(probeItems, base(), 'Fixture Probe'))
-        return
-      case '/reddit-like/news':
-      case '/reddit-like/news/':
-        send(
-          response,
-          200,
-          'text/html',
-          '<!doctype html><html><head><title>News</title></head><body>Reddit-like page</body></html>'
-        )
+      case '/secondary.rss':
+        send(response, 200, 'application/rss+xml', rssDocument(secondaryItems, base(), 'Fixture Secondary'))
         return
       case '/reddit-like/news.rss':
         send(response, 200, 'application/rss+xml', rssDocument(redditItems, base(), 'Fixture Reddit'))
@@ -274,7 +257,7 @@ export async function startFixtureServer(port = 0) {
           response,
           200,
           'text/html',
-          '<!doctype html><html><head><title>Cookie page</title></head><body>Cookie</body></html>',
+          '<!doctype html><html><head><title>Cookie page</title><link rel="alternate" type="application/rss+xml" title="Cookie feed" href="/cookie-page.rss"></head><body>Cookie</body></html>',
           {'set-cookie': 'rss_session=1; Path=/; SameSite=Lax'}
         )
         return

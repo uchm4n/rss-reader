@@ -545,23 +545,19 @@ async function main() {
     }, 'retention did not keep 50 read posts')
     console.log('   retention kept the newest 50 posts')
 
-    console.log('6. detect feeds from page markup and probing')
+    console.log('6. detect feeds from page markup')
     const article = await discoverPage('/article.html', '/article.rss')
-    const probe = await discoverPage('/probe', '/probe.rss')
-    const redditLike = await discoverPage('/reddit-like/news/', '/reddit-like/news.rss')
     const redditDirect = await discoverPage(
       '/reddit-like/news.rss',
       '/reddit-like/news.rss'
     )
 
     assert(article.feeds.length === 1, 'article link feed was not found')
-    assert(probe.feeds.length === 1, 'probe feed was not found')
-    assert(redditLike.feeds.length === 1, 'reddit-like page feed was not found')
     assert(
       redditDirect.feeds.some((feed) => feed.source === 'page'),
       'direct reddit-like feed URL was not recognized'
     )
-    console.log('   link, probe, reddit-like and direct-feed detection passed')
+    console.log('   link and direct-feed detection passed')
 
     const addButtonState = () =>
       evaluate(
@@ -821,8 +817,6 @@ async function main() {
     for (const tabId of [
       cookie.tabId,
       article.tabId,
-      probe.tabId,
-      redditLike.tabId,
       redditDirect.tabId
     ]) {
       await evaluate(`chrome.tabs.remove(${tabId})`).catch(() => {})

@@ -28,6 +28,7 @@ No account, hosted API's, analytics or remote push, everything lives inside the 
 ### Behaviour
 
 - First fetch imports existing entries as read; later fetches add new ones as unread.
+- Feed discovery uses feeds advertised by the current page and Reddit subreddit URLs; it never probes guessed endpoints.
 - Each feed retains the newest 50 posts by default; individual feeds can override that limit in Settings → Feeds. Aggregate views cap at 200.
 - Feeds refresh on a dynamic alarm (15min default); failures back off exponentially up to 1 hour.
 - Media is responsive: most images/video cap at 60vh, native controls, sandboxed iframes, no autoplay.

@@ -2,7 +2,7 @@ export interface DiscoveredFeed {
     url: string
     title: string
     type: string
-    source: 'link' | 'page' | 'probe'
+    source: 'link' | 'page' | 'reddit'
 }
 
 // This function is serialized by chrome.scripting.executeScript. Keep every
@@ -43,30 +43,6 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
             lower.includes('"version"') &&
             lower.includes('"items"')
         )
-    }
-
-    const readPrefix = async (response: Response, limit: number): Promise<string> => {
-        const contentLength = Number(response.headers.get('content-length'))
-        if (Number.isFinite(contentLength) && contentLength > 5 * 1024 * 1024) {
-            return ''
-        }
-
-        const reader = response.body?.getReader()
-        if (!reader) return (await response.text()).slice(0, limit)
-
-        const decoder = new TextDecoder()
-        let text = ''
-        try {
-            while (text.length < limit) {
-                const {done, value} = await reader.read()
-                if (done) break
-                text += decoder.decode(value, {stream: true})
-            }
-        } finally {
-            await reader.cancel().catch(() => {})
-        }
-
-        return text.slice(0, limit)
     }
 
     const path = location.pathname
@@ -120,64 +96,19 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
 
     if (feeds.length) return feeds
 
-    const basePath = path.replace(/\/+$/, '')
-    const candidates = [
-        ...new Set(
-            [
-                `${basePath}.rss`,
-                `${basePath}.atom`,
-                `${basePath}/feed`,
-                `${basePath}/rss`,
-                `${basePath}/rss.xml`,
-                `${basePath}/atom.xml`,
-                '/feed',
-                '/rss.xml',
-                '/atom.xml',
-                '/feed.json'
-            ]
-                .map(absoluteUrl)
-                .filter((candidate): candidate is string => candidate !== null)
-        )
-    ]
+    const host = location.hostname
+    const redditHost = host === 'reddit.com' || host === 'www.reddit.com'
+    const subreddit = redditHost ? path.match(/^\/r\/([A-Za-z0-9_]+)\/?$/) : null
 
-    const deadline = Date.now() + 4_000
-    for (const candidate of candidates) {
-        const remaining = deadline - Date.now()
-        if (remaining <= 0) break
-
-        const controller = new AbortController()
-        const timer = setTimeout(
-            () => controller.abort(),
-            Math.min(1_500, remaining)
-        )
-        try {
-            const response = await fetch(candidate, {
-                credentials: 'include',
-                signal: controller.signal,
-                headers: {
-                    Accept: 'application/rss+xml, application/atom+xml, application/feed+json, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5',
-                    Range: 'bytes=0-4095'
-                }
-            })
-
-            if (!response.ok) continue
-            const text = await readPrefix(response, 4096)
-            if (!looksLikeFeed(text)) continue
-
-            return [
-                {
-                    url: response.url || candidate,
-                    title: document.title || candidate,
-                    type: response.headers.get('content-type') || '',
-                    source: 'probe'
-                }
-            ]
-        } catch {
-            // A rejected candidate is not a feed; continue with the next one.
-        } finally {
-            clearTimeout(timer)
-        }
+    if (subreddit) {
+        const url = `https://www.reddit.com/r/${subreddit[1]}.rss`
+        add({
+            url,
+            title: document.title || url,
+            type: 'application/rss+xml',
+            source: 'reddit'
+        })
     }
 
-    return []
+    return feeds
 }

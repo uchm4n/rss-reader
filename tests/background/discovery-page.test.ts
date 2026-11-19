@@ -119,27 +119,71 @@ describe('discoverPageFeeds', () => {
         ])
     })
 
-    it('probes /r/news.rss for the real Reddit subreddit URL', async () => {
-        page('https://www.reddit.com/r/news/', '<html><body>News</body></html>')
-        const fetchMock = vi.fn().mockResolvedValue(
-            new Response(
-                '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><title>News</title></feed>',
-                {status: 200, headers: {'content-type': 'application/atom+xml'}}
-            )
+    it('derives a Reddit subreddit feed without fetching', async () => {
+        page(
+            'https://www.reddit.com/r/news/',
+            '<html><head><title>News</title></head><body>News</body></html>'
         )
+        const fetchMock = vi.fn()
         vi.stubGlobal('fetch', fetchMock)
 
-        const feeds = await discoverPageFeeds()
-
-        expect(feeds).toMatchObject([
+        await expect(discoverPageFeeds()).resolves.toEqual([
             {
                 url: 'https://www.reddit.com/r/news.rss',
-                source: 'probe'
+                title: 'News',
+                type: 'application/rss+xml',
+                source: 'reddit'
             }
         ])
-        expect(fetchMock.mock.calls[0][0]).toBe(
-            'https://www.reddit.com/r/news.rss'
+        expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('derives a Reddit feed from a bare subreddit path', async () => {
+        page('https://reddit.com/r/news', '<html><body>News</body></html>')
+        const fetchMock = vi.fn()
+        vi.stubGlobal('fetch', fetchMock)
+
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {url: 'https://www.reddit.com/r/news.rss', source: 'reddit'}
+        ])
+        expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('does not derive a feed for Reddit comment pages or non-canonical hosts', async () => {
+        const fetchMock = vi.fn()
+        vi.stubGlobal('fetch', fetchMock)
+
+        page(
+            'https://www.reddit.com/r/news/comments/abc123/title/',
+            '<html><body>Comments</body></html>'
         )
+        await expect(discoverPageFeeds()).resolves.toEqual([])
+
+        page(
+            'https://reddit.com.evil.test/r/news/',
+            '<html><body>Not Reddit</body></html>'
+        )
+        await expect(discoverPageFeeds()).resolves.toEqual([])
+
+        page(
+            'https://old.reddit.com/r/news/',
+            '<html><body>Old Reddit</body></html>'
+        )
+        await expect(discoverPageFeeds()).resolves.toEqual([])
+
+        expect(fetchMock).not.toHaveBeenCalled()
+    })
+
+    it('returns no feeds and makes no requests for a generic page', async () => {
+        page(
+            'https://example.com/search?q=localhost:8000',
+            '<html><body>Results</body></html>'
+        )
+        const fetchMock = vi.fn()
+        vi.stubGlobal('fetch', fetchMock)
+
+        await expect(discoverPageFeeds()).resolves.toEqual([])
+        expect(fetchMock).not.toHaveBeenCalled()
     })
 
     it('recognizes the real Reddit .rss URL directly', async () => {
@@ -155,64 +199,6 @@ describe('discoverPageFeeds', () => {
                 source: 'page'
             }
         ])
-    })
-
-    it('probes the Reddit-style .rss URL when no link exists', async () => {
-        page('https://www.reddit.com/r/news', '<html><body>News</body></html>')
-        const fetchMock = vi.fn().mockResolvedValue(
-            new Response(
-                '<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><title>News</title></feed>',
-                {status: 200, headers: {'content-type': 'application/atom+xml'}}
-            )
-        )
-        vi.stubGlobal('fetch', fetchMock)
-
-        const feeds = await discoverPageFeeds()
-
-        expect(feeds).toMatchObject([
-            {
-                url: 'https://www.reddit.com/r/news.rss',
-                source: 'probe'
-            }
-        ])
-        expect(fetchMock.mock.calls[0][0]).toBe(
-            'https://www.reddit.com/r/news.rss'
-        )
-    })
-
-    it('rejects an HTML soft-404 and stops at the next candidate', async () => {
-        page('https://example.com/article', '<html><body>Article</body></html>')
-        const fetchMock = vi.fn(async (url: string) => {
-            if (url.endsWith('.rss')) {
-                return new Response('<html>Not found</html>', {status: 200})
-            }
-            return new Response('not a feed', {status: 404})
-        })
-        vi.stubGlobal('fetch', fetchMock)
-
-        await expect(discoverPageFeeds()).resolves.toEqual([])
-    })
-
-    it('rejects an HTML body even when labeled as a feed', async () => {
-        page('https://example.com/article', '<html><body>Article</body></html>')
-        vi.stubGlobal(
-            'fetch',
-            vi.fn().mockResolvedValue(
-                new Response('<html><body>Not found</body></html>', {
-                    status: 200,
-                    headers: {'content-type': 'application/rss+xml'}
-                })
-            )
-        )
-
-        await expect(discoverPageFeeds()).resolves.toEqual([])
-    })
-
-    it('returns no feeds when probing fails or times out', async () => {
-        page('https://example.com/article', '<html><body>Article</body></html>')
-        vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('aborted')))
-
-        await expect(discoverPageFeeds()).resolves.toEqual([])
     })
 
     it('drops non-http feed links', async () => {
