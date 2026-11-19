@@ -52,7 +52,10 @@ npm test             # Vitest unit, DB, parser, popup and local-fixture tests
 npm run test:watch   # Vitest watch mode
 npm run test:e2e     # Chrome for Testing smoke test with local fixtures
 npm run typecheck    # tsc --noEmit
+npm run release      # test, build, zip, commit and tag a patch release
 ```
+
+`npm run release` bumps the version (patch by default), runs the unit tests and typecheck, builds `dist/chrome`, writes `dist/rss-reader-<version>.zip` for the Chrome Web Store, commits the version files, and creates a `<version>` tag. It requires a clean working tree. Use `npm run release -- minor` or `npm run release -- major` for a different bump.
 
 `npm run test:e2e` discovers Playwright’s Chrome for Testing cache on macOS and checks common Chrome/Chromium locations. Set `CHROME_BIN` to a Chrome for Testing or Chromium binary if it is installed elsewhere. Current branded Chrome builds ignore `--load-extension`.
 

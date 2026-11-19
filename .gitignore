@@ -6,7 +6,6 @@ dist/
 .openidea/
 .idea/
 docs/
-scripts/
 .opencode
 AGENTS.md
 FEATURE-INVENTORY.md

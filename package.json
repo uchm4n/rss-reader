@@ -43,6 +43,7 @@
     "start": "extension start",
     "build": "extension build",
     "preview": "extension preview",
+    "release": "node scripts/release.mjs",
     "build:chrome": "extension build --browser chrome",
     "build:firefox": "extension build --browser firefox",
     "build:edge": "extension build --browser edge",
