@@ -3,9 +3,10 @@
 A local-first browser extension for RSS, Atom, RDF and JSON feeds. 
 No account, hosted API's, analytics or remote push, everything lives inside the browser, offline.
 
-[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/ojlofmfdkblgdkjjhhpojmdnechhjcjo)
-
 ![screenshot.png](screenshot.png)
+
+### Install
+[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/ojlofmfdkblgdkjjhhpojmdnechhjcjo)
 
 ### Technology
 
