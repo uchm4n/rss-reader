@@ -1,6 +1,7 @@
 import {type AnyFeed, parseFeed} from 'feedsmith'
 import type {ContentFormat} from '../model/post'
 import {excerptText, plainText} from './html'
+import {parseRedditListing} from './parse-reddit-json'
 
 export interface ParsedPost {
     guid: string | null
@@ -216,6 +217,9 @@ function parseRdf(feed: Extract<AnyFeed, { format: 'rdf' }>['feed']): ParsedFeed
 }
 
 export function parseFeedDocument(text: string): ParsedFeed {
+    const redditListing = parseRedditListing(text)
+    if (redditListing) return redditListing
+
     let parsed: AnyFeed
 
     try {

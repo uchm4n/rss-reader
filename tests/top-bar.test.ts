@@ -33,4 +33,24 @@ describe('TopBar', () => {
     expect(addButton).toContain('aria-label="Add feed"')
     expect(addButton).not.toContain('disabled=""')
   })
+
+  it('highlights the add button when a feed is available', () => {
+    const html = render(true)
+    const addButton = html.match(/<button[^>]*aria-label="Add feed"[^>]*>/)?.[0] ?? ''
+
+    expect(addButton).toContain('data-feed-available="true"')
+    expect(addButton).toContain('bg-add/15')
+    expect(addButton).toContain('ring-add/20')
+    expect(html).toContain('data-slot="add-feed-indicator"')
+  })
+
+  it('does not highlight the add button when no feed is available', () => {
+    const html = render(false)
+    const addButton = html.match(/<button[^>]*aria-label="Add feed"[^>]*>/)?.[0] ?? ''
+
+    expect(addButton).toContain('data-feed-available="false"')
+    expect(addButton).not.toContain('bg-add/15')
+    expect(addButton).not.toContain('ring-add/20')
+    expect(html).not.toContain('data-slot="add-feed-indicator"')
+  })
 })

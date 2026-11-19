@@ -21,6 +21,10 @@ function decodeEntity(entity: string, code: string): string {
     return ENTITIES[code.toLowerCase()] ?? entity
 }
 
+export function decodeEntities(value: string): string {
+    return value.replace(/&(#x?[0-9a-f]+|[a-z]+);/gi, decodeEntity)
+}
+
 export function plainText(html: string): string {
     return html
         .replace(/<script[\s\S]*?<\/script>/gi, ' ')

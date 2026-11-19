@@ -559,6 +559,40 @@ async function main() {
     )
     console.log('   link and direct-feed detection passed')
 
+    console.log('6a. highlight the add button when a feed is available')
+    await evaluate(`chrome.tabs.update(${article.tabId}, {active: true})`)
+    await popup.send('Page.reload', {ignoreCache: true})
+    await waitFor(
+      () =>
+        evaluate(
+          `document.querySelector('button[aria-label="Add feed"]')?.dataset.feedAvailable === 'true'`
+        ),
+      'add-feed button was not highlighted for a feed page'
+    )
+    assert(
+      await evaluate(
+        `document.querySelector('button[aria-label="Add feed"]')?.className.includes('bg-add/15')`
+      ),
+      'add-feed button highlight class missing'
+    )
+
+    await openPage('/opml.xml')
+    const noFeedTabId = await pageTabId('/opml.xml')
+    if (noFeedTabId) {
+      await evaluate(`chrome.tabs.update(${noFeedTabId}, {active: true})`)
+    }
+    await popup.send('Page.reload', {ignoreCache: true})
+    await waitFor(
+      () =>
+        evaluate(
+          `document.querySelector('button[aria-label="Add feed"]')?.dataset.feedAvailable === 'false'`
+        ),
+      'add-feed button stayed highlighted without a feed'
+    )
+    if (noFeedTabId) await evaluate(`chrome.tabs.remove(${noFeedTabId})`)
+    await evaluate(`chrome.tabs.update(${redditDirect.tabId}, {active: true})`)
+    console.log('   add button highlighted only when a feed was available')
+
     const addButtonState = () =>
       evaluate(
         `(() => {
@@ -814,13 +848,19 @@ async function main() {
       return posts.length === 3
     }, 'page-mode refresh did not add the new post')
 
-    for (const tabId of [
-      cookie.tabId,
-      article.tabId,
-      redditDirect.tabId
-    ]) {
+    const fixtureTabs = await evaluate(
+      `chrome.tabs.query({url: ${JSON.stringify(`${fixture.url}/*`)}}).then((tabs) => tabs.map((tab) => tab.id).filter((id) => typeof id === 'number'))`
+    )
+    for (const tabId of fixtureTabs) {
       await evaluate(`chrome.tabs.remove(${tabId})`).catch(() => {})
     }
+    await waitFor(
+      () =>
+        evaluate(
+          `chrome.tabs.query({url: ${JSON.stringify(`${fixture.url}/*`)}}).then((tabs) => tabs.length === 0)`
+        ),
+      'fixture tabs remained open'
+    )
     const failedRefresh = await evaluate(
       `chrome.runtime.sendMessage(${JSON.stringify({type: 'feed:refresh', id: cookieFeed.id})})`
     )

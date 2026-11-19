@@ -64,11 +64,11 @@ describe('discoverPageFeeds', () => {
     })
 
     it('treats the current feed URL as a feed', async () => {
-        page('https://www.reddit.com/r/news.rss', '<html><body></body></html>')
+        page('https://example.com/feed.rss', '<html><body></body></html>')
 
         await expect(discoverPageFeeds()).resolves.toMatchObject([
             {
-                url: 'https://www.reddit.com/r/news.rss',
+                url: 'https://example.com/feed.rss',
                 source: 'page'
             }
         ])
@@ -119,7 +119,7 @@ describe('discoverPageFeeds', () => {
         ])
     })
 
-    it('derives a Reddit subreddit feed without fetching', async () => {
+    it('derives a Reddit subreddit JSON feed without fetching', async () => {
         page(
             'https://www.reddit.com/r/news/',
             '<html><head><title>News</title></head><body>News</body></html>'
@@ -129,9 +129,9 @@ describe('discoverPageFeeds', () => {
 
         await expect(discoverPageFeeds()).resolves.toEqual([
             {
-                url: 'https://www.reddit.com/r/news.rss',
+                url: 'https://www.reddit.com/r/news/.json',
                 title: 'News',
-                type: 'application/rss+xml',
+                type: 'application/json',
                 source: 'reddit'
             }
         ])
@@ -144,21 +144,74 @@ describe('discoverPageFeeds', () => {
         vi.stubGlobal('fetch', fetchMock)
 
         await expect(discoverPageFeeds()).resolves.toMatchObject([
-            {url: 'https://www.reddit.com/r/news.rss', source: 'reddit'}
+            {url: 'https://www.reddit.com/r/news/.json', source: 'reddit'}
         ])
         expect(fetchMock).not.toHaveBeenCalled()
     })
 
-    it('does not derive a feed for Reddit comment pages or non-canonical hosts', async () => {
-        const fetchMock = vi.fn()
-        vi.stubGlobal('fetch', fetchMock)
+    it('derives the popular subreddit JSON feed', async () => {
+        page(
+            'https://www.reddit.com/r/popular',
+            '<html><head><title>Popular</title></head><body>Popular</body></html>'
+        )
 
+        await expect(discoverPageFeeds()).resolves.toEqual([
+            {
+                url: 'https://www.reddit.com/r/popular/.json',
+                title: 'Popular',
+                type: 'application/json',
+                source: 'reddit'
+            }
+        ])
+    })
+
+    it('derives the Reddit home JSON feed', async () => {
+        page(
+            'https://www.reddit.com/',
+            '<html><head><title>Reddit</title></head><body>Home</body></html>'
+        )
+
+        await expect(discoverPageFeeds()).resolves.toEqual([
+            {
+                url: 'https://www.reddit.com/.json',
+                title: 'Reddit',
+                type: 'application/json',
+                source: 'reddit'
+            }
+        ])
+    })
+
+    it('derives the subreddit feed from a post page', async () => {
         page(
             'https://www.reddit.com/r/news/comments/abc123/title/',
-            '<html><body>Comments</body></html>'
+            '<html><body>Post</body></html>'
         )
-        await expect(discoverPageFeeds()).resolves.toEqual([])
 
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {url: 'https://www.reddit.com/r/news/.json', source: 'reddit'}
+        ])
+    })
+
+    it('upgrades a Reddit .rss URL to JSON', async () => {
+        page('https://www.reddit.com/r/news/.rss', '<html><body>Legacy</body></html>')
+
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {url: 'https://www.reddit.com/r/news/.json', source: 'reddit'}
+        ])
+    })
+
+    it('ignores Reddit .rss links and derives the JSON feed', async () => {
+        page(
+            'https://www.reddit.com/r/news/',
+            '<html><head><link rel="alternate" type="application/rss+xml" title="RSS" href="/r/news/.rss"></head><body>News</body></html>'
+        )
+
+        await expect(discoverPageFeeds()).resolves.toMatchObject([
+            {url: 'https://www.reddit.com/r/news/.json', source: 'reddit'}
+        ])
+    })
+
+    it('does not derive feeds for non-canonical Reddit hosts', async () => {
         page(
             'https://reddit.com.evil.test/r/news/',
             '<html><body>Not Reddit</body></html>'
@@ -170,8 +223,12 @@ describe('discoverPageFeeds', () => {
             '<html><body>Old Reddit</body></html>'
         )
         await expect(discoverPageFeeds()).resolves.toEqual([])
+    })
 
-        expect(fetchMock).not.toHaveBeenCalled()
+    it('does not derive a feed for Reddit search pages', async () => {
+        page('https://www.reddit.com/search?q=news', '<html><body>Search</body></html>')
+
+        await expect(discoverPageFeeds()).resolves.toEqual([])
     })
 
     it('returns no feeds and makes no requests for a generic page', async () => {
@@ -184,21 +241,6 @@ describe('discoverPageFeeds', () => {
 
         await expect(discoverPageFeeds()).resolves.toEqual([])
         expect(fetchMock).not.toHaveBeenCalled()
-    })
-
-    it('recognizes the real Reddit .rss URL directly', async () => {
-        page(
-            'https://www.reddit.com/r/news.rss',
-            '<html><body><pre>&lt;feed&gt;&lt;/feed&gt;</pre></body></html>',
-            'text/plain'
-        )
-
-        await expect(discoverPageFeeds()).resolves.toMatchObject([
-            {
-                url: 'https://www.reddit.com/r/news.rss',
-                source: 'page'
-            }
-        ])
     })
 
     it('drops non-http feed links', async () => {

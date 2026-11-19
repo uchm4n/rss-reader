@@ -15,6 +15,8 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
     const feedLikePath = /(^|\/)(feed|rss|atom)(\/|$)/i
     const seen = new Set<string>()
     const feeds: DiscoveredFeed[] = []
+    const path = location.pathname
+    const host = location.hostname
 
     const absoluteUrl = (href: string): string | null => {
         try {
@@ -31,6 +33,31 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
         feeds.push(feed)
     }
 
+    const redditFeedUrl = (): string | null => {
+        if (path === '/' || path === '/.json') {
+            return 'https://www.reddit.com/.json'
+        }
+
+        const subreddit = path.match(/^\/r\/([A-Za-z0-9_]+)(?:\/|$|\.json$)/)
+        return subreddit ? `https://www.reddit.com/r/${subreddit[1]}/.json` : null
+    }
+
+    if (host === 'reddit.com' || host.endsWith('.reddit.com')) {
+        const canonical = host === 'reddit.com' || host === 'www.reddit.com'
+        const url = canonical ? redditFeedUrl() : null
+
+        return url
+            ? [
+                {
+                    url,
+                    title: document.title || url,
+                    type: 'application/json',
+                    source: 'reddit'
+                }
+            ]
+            : []
+    }
+
     const looksLikeFeed = (text: string): boolean => {
         const head = text.slice(0, 4096).trimStart()
         const lower = head.toLowerCase()
@@ -45,7 +72,6 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
         )
     }
 
-    const path = location.pathname
     const bodyIsFeed =
         /(xml|text\/plain|json)/i.test(contentType) &&
         looksLikeFeed(document.body?.textContent?.slice(0, 4096) ?? '')
@@ -96,19 +122,5 @@ export async function discoverPageFeeds(): Promise<DiscoveredFeed[]> {
 
     if (feeds.length) return feeds
 
-    const host = location.hostname
-    const redditHost = host === 'reddit.com' || host === 'www.reddit.com'
-    const subreddit = redditHost ? path.match(/^\/r\/([A-Za-z0-9_]+)\/?$/) : null
-
-    if (subreddit) {
-        const url = `https://www.reddit.com/r/${subreddit[1]}.rss`
-        add({
-            url,
-            title: document.title || url,
-            type: 'application/rss+xml',
-            source: 'reddit'
-        })
-    }
-
-    return feeds
+    return []
 }

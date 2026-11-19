@@ -212,6 +212,18 @@ describe('renderPostContent', () => {
     expect(htmlOf(result)).toContain('controls')
   })
 
+  it('renders Reddit JSON fallback video URLs as players', () => {
+    const result = renderPostContent(
+      '<p><a href="https://v.redd.it/abc/CMAF_720.mp4?source=fallback">video</a></p>',
+      'html'
+    )
+
+    expect(htmlOf(result)).toContain('<video')
+    expect(htmlOf(result)).toContain(
+      'src="https://v.redd.it/abc/CMAF_720.mp4?source=fallback"'
+    )
+  })
+
   it('replaces a Reddit-style media-card table with the embed', () => {
     const result = renderPostContent(
       '<table><tbody><tr><td><a href="https://www.reddit.com/r/WTF/comments/1wen3tq/post/">Watch</a></td></tr></tbody></table>',

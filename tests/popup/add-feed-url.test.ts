@@ -47,4 +47,38 @@ describe('firstAddableFeedUrl', () => {
       )
     ).toBe('https://example.com/two.xml')
   })
+
+  it('normalizes Reddit discovery URLs to .json', () => {
+    for (const url of [
+      'https://www.reddit.com/r/popular.rss',
+      'https://www.reddit.com/r/popular/.rss',
+      'https://www.reddit.com/r/popular/.atom',
+      'https://www.reddit.com/r/popular'
+    ]) {
+      expect(
+        firstAddableFeedUrl(discovery([{url, subscribed: false}]))
+      ).toBe('https://www.reddit.com/r/popular/.json')
+    }
+  })
+
+  it('keeps Reddit .json and non-Reddit URLs unchanged', () => {
+    expect(
+      firstAddableFeedUrl(
+        discovery([
+          {
+            url: 'https://www.reddit.com/r/popular/.json',
+            subscribed: false
+          }
+        ])
+      )
+    ).toBe('https://www.reddit.com/r/popular/.json')
+
+    expect(
+      firstAddableFeedUrl(
+        discovery([
+          {url: 'https://example.com/feed.rss', subscribed: false}
+        ])
+      )
+    ).toBe('https://example.com/feed.rss')
+  })
 })

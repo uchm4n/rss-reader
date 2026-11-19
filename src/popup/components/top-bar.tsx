@@ -31,6 +31,10 @@ export function TopBar({
                            onOpenSettings,
                            isRefreshing
                        }: TopBarProps) {
+    const addButtonClass = canAddFeed
+        ? 'bg-add/15 text-add ring-1 ring-add/20 hover:bg-add/20 hover:text-add'
+        : 'hover:bg-add/10 hover:text-add'
+
     return (
         <header className="flex h-13 shrink-0 items-center gap-2 border-b px-3">
             <span className="text-sm font-semibold">RSS Reader</span>
@@ -70,9 +74,19 @@ export function TopBar({
                             size="icon-sm"
                             onClick={onAddFeed}
                             aria-label="Add feed"
-                            className="hover:bg-add/10 hover:text-add"
+                            data-feed-available={canAddFeed ? 'true' : 'false'}
+                            className={addButtonClass}
                         >
-                            <Plus className="size-4"/>
+                            <span className="relative inline-flex">
+                                <Plus className="size-4"/>
+                                {canAddFeed ? (
+                                    <span
+                                        data-slot="add-feed-indicator"
+                                        aria-hidden="true"
+                                        className="absolute -top-0.5 -right-0.5 size-1.5 rounded-full bg-add ring-2 ring-background"
+                                    />
+                                ) : null}
+                            </span>
                         </Button>
                     </span>
                 </TooltipTrigger>

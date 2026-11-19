@@ -16,6 +16,33 @@ function rssWithItems(count: number): string {
   return `<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><link>https://example.com/</link><description>d</description>${items}</channel></rss>`
 }
 
+function redditListing(): string {
+  return JSON.stringify({
+    kind: 'Listing',
+    data: {
+      children: [
+        {
+          kind: 't3',
+          data: {
+            name: 't3_1',
+            title: 'Reddit post',
+            subreddit: 'news',
+            permalink: '/r/news/comments/1/reddit_post/',
+            url: 'https://example.com/story',
+            url_overridden_by_dest: 'https://example.com/story',
+            selftext: '',
+            selftext_html: null,
+            created_utc: 1760000000,
+            author: 'alice',
+            thumbnail: 'default',
+            is_self: false
+          }
+        }
+      ]
+    }
+  })
+}
+
 beforeEach(() => {
   vi.stubGlobal('chrome', {
     action: {
@@ -86,6 +113,31 @@ describe('handleCommand', () => {
     expect(result.ok).toBe(true)
     const feeds = await db.feeds.toArray()
     expect(feeds[0]).toMatchObject({fetchMode: 'background', url: 'https://example.com/feed.xml'})
+  })
+
+  it('adds a Reddit JSON listing feed', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(redditListing(), {
+          status: 200,
+          headers: {'content-type': 'application/json'}
+        })
+      )
+    )
+
+    const result = await handleCommand({
+      type: 'feed:add',
+      url: 'https://www.reddit.com/r/news/.json'
+    })
+
+    expect(result.ok).toBe(true)
+    const feeds = await db.feeds.toArray()
+    expect(feeds[0]).toMatchObject({
+      title: 'r/news',
+      url: 'https://www.reddit.com/r/news/.json'
+    })
+    expect(await db.posts.count()).toBe(1)
   })
 
   it('stores a per-feed post limit and applies it on the first fetch', async () => {
