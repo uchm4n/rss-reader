@@ -3,7 +3,8 @@
 A local-first browser extension for RSS, Atom, RDF and JSON feeds. 
 No account, hosted API's, analytics or remote push, everything lives inside the browser, offline.
 
-![screenshot.png](screenshot.png)
+![RSS Reader popup opening from the toolbar and showing a Hacker News post](screenshot.webp)
+
 
 ### Install
 [Install from the Chrome Web Store](https://chromewebstore.google.com/detail/ojlofmfdkblgdkjjhhpojmdnechhjcjo)
