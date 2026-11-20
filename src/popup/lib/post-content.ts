@@ -1,4 +1,5 @@
 import {marked} from 'marked'
+import {redditVideoAudioUrl} from '@/shared/model/feed-url'
 import type {ContentFormat} from '@/shared/model/post'
 import {normalizeEmbedUrl, type SafeEmbed} from './embed'
 import {createMediaCard} from './media-card'
@@ -10,6 +11,11 @@ export type ContentKind = ContentFormat | 'json'
 export type RenderedPostContent =
     | { kind: 'html' | 'markdown' | 'json'; html: string }
     | { kind: 'text'; text: string }
+
+export interface PostContentOptions {
+    autoplayVideo?: boolean
+    muted?: boolean
+}
 
 const HTML_TAG = /<\/?[a-z][^>]*>/i
 const MARKDOWN_BLOCK = /(^|\n)\s{0,3}(?:#{1,6}\s|```|~~~|>\s|[-*+]\s|\d+[.)]\s)/
@@ -161,12 +167,20 @@ function createEmbedIframe(url: string): Element | null {
     return template.content.firstElementChild
 }
 
-function createVideo(url: string): HTMLVideoElement {
+function createVideo(url: string, autoplay: boolean, muted: boolean): HTMLVideoElement {
     const video = document.createElement('video')
     video.setAttribute('src', url)
     video.setAttribute('controls', '')
     video.setAttribute('playsinline', '')
     video.setAttribute('preload', 'metadata')
+    video.muted = muted
+    video.defaultMuted = muted
+    if (muted) video.setAttribute('muted', '')
+    if (autoplay) video.setAttribute('autoplay', '')
+
+    const audio = redditVideoAudioUrl(url)
+    if (audio) video.setAttribute('data-audio-src', audio)
+
     return video
 }
 
@@ -178,7 +192,10 @@ function codeLanguage(pre: HTMLPreElement): string {
     return match?.[1]?.toUpperCase() ?? ''
 }
 
-export function enhancePostHtml(html: string): string {
+export function enhancePostHtml(
+    html: string,
+    options: PostContentOptions = {}
+): string {
     const template = document.createElement('template')
     template.innerHTML = html
     const root = template.content
@@ -239,7 +256,19 @@ export function enhancePostHtml(html: string): string {
         video.setAttribute('controls', '')
         video.setAttribute('playsinline', '')
         video.setAttribute('preload', 'metadata')
-        video.removeAttribute('autoplay')
+
+        const muted = options.muted === true
+        video.muted = muted
+        video.defaultMuted = muted
+        if (muted) video.setAttribute('muted', '')
+        else video.removeAttribute('muted')
+
+        if (options.autoplayVideo) video.setAttribute('autoplay', '')
+        else video.removeAttribute('autoplay')
+
+        const src = video.getAttribute('src')
+        const audio = src ? redditVideoAudioUrl(src) : null
+        if (audio) video.setAttribute('data-audio-src', audio)
     }
 
     for (const audio of root.querySelectorAll('audio')) {
@@ -339,7 +368,11 @@ export function enhancePostHtml(html: string): string {
         if (candidate.video) {
             if (seenMedia.has(candidate.video)) continue
             seenMedia.add(candidate.video)
-            const video = createVideo(candidate.video)
+            const video = createVideo(
+                candidate.video,
+                options.autoplayVideo === true,
+                options.muted === true
+            )
             if (replace) block.replaceWith(video)
             else block.after(video)
             continue
@@ -372,7 +405,8 @@ export function enhancePostHtml(html: string): string {
 export function renderPostContent(
     content: string,
     declared?: ContentFormat,
-    imageUrl?: string | null
+    imageUrl?: string | null,
+    options: PostContentOptions = {}
 ): RenderedPostContent {
     const kind = detectContentKind(content, declared)
     if (kind === 'text') {
@@ -381,17 +415,17 @@ export function renderPostContent(
 
     if (kind === 'json') {
         const html = `<pre><code class="language-json">${escapeHtml(formatJson(content))}</code></pre>`
-        return {kind, html: enhancePostHtml(sanitizePostHtml(html))}
+        return {kind, html: enhancePostHtml(sanitizePostHtml(html), options)}
     }
 
     if (kind === 'markdown') {
         const html = marked.parse(content, {async: false, gfm: true})
-        return {kind, html: enhancePostHtml(sanitizePostHtml(html))}
+        return {kind, html: enhancePostHtml(sanitizePostHtml(html), options)}
     }
 
     const reddit = renderRedditContent(content, imageUrl)
     return {
         kind,
-        html: enhancePostHtml(sanitizePostHtml(reddit ?? content))
+        html: enhancePostHtml(sanitizePostHtml(reddit ?? content), options)
     }
 }

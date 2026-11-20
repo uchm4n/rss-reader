@@ -12,6 +12,7 @@ import {
     TooltipTrigger
 } from '@/components/ui/tooltip'
 import type {Feed, Post} from '@/db/types'
+import {isRedditFeedUrl} from '@/shared/model/feed-url'
 import {formatRelativeTime} from '@/shared/model/post'
 import {useFeeds} from '../../hooks/use-feeds'
 import {usePost} from '../../hooks/use-post'
@@ -177,6 +178,7 @@ export function PostArticle({
     const hnId = hnItemId(post)
     const redditId = hnId === null ? redditPostId(post) : null
     const commentsOnly = hnId !== null && isHnCommentsOnly(post.contentHtml)
+    const autoplayVideo = isRedditFeedUrl(feed?.url)
 
     return (
         <article className="mx-auto w-full min-w-0 max-w-2xl px-6 py-5">
@@ -201,6 +203,7 @@ export function PostArticle({
                         contentType={post.contentType}
                         imageUrl={post.imageUrl}
                         matchWords={feed?.matchWords}
+                        autoplayVideo={autoplayVideo}
                     />
                 </div>
             ) : hnId === null ? (

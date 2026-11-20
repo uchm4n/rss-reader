@@ -210,18 +210,92 @@ describe('renderPostContent', () => {
       'src="https://packaged-media.redd.it/abc/DASH_720.mp4"'
     )
     expect(htmlOf(result)).toContain('controls')
+    expect(htmlOf(result)).not.toContain('autoplay')
   })
 
-  it('renders Reddit JSON fallback video URLs as players', () => {
+  it('renders Reddit JSON fallback video URLs with their audio track', () => {
     const result = renderPostContent(
       '<p><a href="https://v.redd.it/abc/CMAF_720.mp4?source=fallback">video</a></p>',
       'html'
     )
 
-    expect(htmlOf(result)).toContain('<video')
-    expect(htmlOf(result)).toContain(
-      'src="https://v.redd.it/abc/CMAF_720.mp4?source=fallback"'
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+    const video = container.querySelector('video')
+
+    expect(video).not.toBeNull()
+    expect(video?.getAttribute('src')).toBe(
+      'https://v.redd.it/abc/CMAF_720.mp4?source=fallback'
     )
+    expect(video?.getAttribute('data-audio-src')).toBe(
+      'https://v.redd.it/abc/CMAF_AUDIO_128.mp4'
+    )
+  })
+
+  it('unmutes every video by default, even when the source marks it muted', () => {
+    const result = renderPostContent(
+      '<video src="https://example.com/video.mp4" muted autoplay></video>',
+      'html'
+    )
+
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+    const video = container.querySelector('video')
+
+    expect(video).not.toBeNull()
+    expect(video?.hasAttribute('muted')).toBe(false)
+    expect(video?.muted).toBe(false)
+    expect(video?.hasAttribute('autoplay')).toBe(false)
+  })
+
+  it('autoplays Reddit feed videos', () => {
+    const result = renderPostContent(
+      '<p><a href="https://v.redd.it/abc/CMAF_1080.mp4?source=fallback">video</a></p>',
+      'html',
+      null,
+      {autoplayVideo: true}
+    )
+
+    const html = htmlOf(result)
+
+    expect(html).toContain('<video')
+    expect(html).toContain('autoplay')
+    expect(html).not.toContain('muted')
+    expect(html).toContain(
+      'data-audio-src="https://v.redd.it/abc/CMAF_AUDIO_128.mp4"'
+    )
+  })
+
+  it('applies autoplay to existing Reddit feed video elements', () => {
+    const result = renderPostContent(
+      '<video src="https://v.redd.it/abc/CMAF_1080.mp4"></video>',
+      'html',
+      null,
+      {autoplayVideo: true}
+    )
+
+    const html = htmlOf(result)
+
+    expect(html).toContain('autoplay')
+    expect(html).not.toContain('muted')
+  })
+
+  it('explicitly unmutes autoplaying Reddit feed videos when muted is false', () => {
+    const result = renderPostContent(
+      '<video src="https://v.redd.it/abc/CMAF_1080.mp4" muted autoplay></video>',
+      'html',
+      null,
+      {autoplayVideo: true, muted: false}
+    )
+
+    const container = document.createElement('div')
+    container.innerHTML = htmlOf(result)
+    const video = container.querySelector('video')
+
+    expect(video).not.toBeNull()
+    expect(video?.hasAttribute('muted')).toBe(false)
+    expect(video?.muted).toBe(false)
+    expect(video?.hasAttribute('autoplay')).toBe(true)
   })
 
   it('replaces a Reddit-style media-card table with the embed', () => {

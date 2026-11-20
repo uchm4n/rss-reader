@@ -1,7 +1,8 @@
-import {type MouseEvent, useMemo} from 'react'
+import {type MouseEvent, useEffect, useMemo, useRef} from 'react'
 import type {ContentFormat} from '@/shared/model/post'
 import {highlightPostHtml} from '../../lib/highlight'
 import {renderPostContent} from '../../lib/post-content'
+import {attachVideoAudio} from '../../lib/video-audio'
 import {HighlightedText} from './highlighted-text'
 
 interface PostBodyProps {
@@ -9,6 +10,7 @@ interface PostBodyProps {
     contentType?: ContentFormat
     imageUrl?: string | null
     matchWords?: readonly string[]
+    autoplayVideo?: boolean
 }
 
 function copyCode(event: MouseEvent<HTMLDivElement>) {
@@ -33,15 +35,28 @@ function copyCode(event: MouseEvent<HTMLDivElement>) {
         .catch(() => {})
 }
 
-export function PostBody({content, contentType, imageUrl, matchWords}: PostBodyProps) {
+export function PostBody({
+                             content,
+                             contentType,
+                             imageUrl,
+                             matchWords,
+                             autoplayVideo = false
+                         }: PostBodyProps) {
     const rendered = useMemo(
-        () => renderPostContent(content, contentType, imageUrl),
-        [content, contentType, imageUrl]
+        () => renderPostContent(content, contentType, imageUrl, {autoplayVideo, muted: false}),
+        [content, contentType, imageUrl, autoplayVideo]
     )
     const highlighted = useMemo(
         () => (rendered.kind === 'text' ? null : highlightPostHtml(rendered.html, matchWords)),
         [rendered, matchWords]
     )
+    const rootRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const root = rootRef.current
+        if (!root) return
+        return attachVideoAudio(root)
+    }, [highlighted])
 
     if (rendered.kind === 'text') {
         return (
@@ -53,6 +68,7 @@ export function PostBody({content, contentType, imageUrl, matchWords}: PostBodyP
 
     return (
         <div
+            ref={rootRef}
             className="post-content"
             onClick={copyCode}
             dangerouslySetInnerHTML={{__html: highlighted ?? ''}}
